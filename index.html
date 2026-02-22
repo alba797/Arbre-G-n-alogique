@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Arbre Généalogique</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#fdf6ed; --parchment:#f5e9d3; --amber:#c07a2f;
+  --amber-dark:#8b5320; --amber-light:#e8a455; --brown:#4a2c11;
+  --text:#2d1a0a; --muted:#7a5c3d; --white:#fff;
+  --shadow:0 4px 20px rgba(74,44,17,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:17px}
+
+/* BRANCH COLORS */
+.b-Monsigny             {--bc:#5a9478;--bb:#B5D5C5}
+.b-Pillon               {--bc:#c07a2f;--bb:#F5C6A0}
+.b-Bareau               {--bc:#4a6ab5;--bb:#C5D5F0}
+.b-Baranowski           {--bc:#9b5fa5;--bb:#E8C5E8}
+
+/* HEADER */
+header{background:linear-gradient(135deg,var(--brown),var(--amber-dark));padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hdr-title{font-family:'Playfair Display',serif;color:var(--cream);font-size:22px;font-weight:700}
+.hdr-sub{font-size:12px;color:var(--amber-light);font-style:italic}
+.hdr-btns{display:flex;gap:8px}
+.btn-hdr{background:var(--amber-light);color:var(--brown);border:none;border-radius:50px;padding:10px 18px;font-size:14px;font-weight:600;font-family:'Lora',serif;cursor:pointer;white-space:nowrap}
+.btn-hdr-ghost{background:rgba(255,255,255,.2);color:var(--cream);border:2px solid rgba(255,255,255,.3);border-radius:50px;padding:10px 14px;font-size:16px;cursor:pointer}
+.search-wrap{display:flex;align-items:center;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:50px;padding:8px 16px;gap:8px}
+.search-wrap input{background:transparent;border:none;outline:none;color:var(--cream);font-size:15px;font-family:'Lora',serif;flex:1;min-width:0}
+.search-wrap input::placeholder{color:rgba(253,246,237,.6)}
+
+/* FILTER BARS */
+.filter-bar{padding:10px 16px 4px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.chip{background:var(--white);border:2px solid var(--parchment);border-radius:50px;padding:6px 13px;font-size:13px;font-family:'Lora',serif;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.chip.active{background:var(--amber);border-color:var(--amber);color:var(--white);font-weight:600}
+.chip.b-Monsigny.active  {background:var(--bb);border-color:var(--bc);color:var(--bc)}
+.chip.b-Pillon.active    {background:var(--bb);border-color:var(--bc);color:var(--bc)}
+.chip.b-Bareau.active    {background:var(--bb);border-color:var(--bc);color:var(--bc)}
+.chip.b-Baranowski.active{background:var(--bb);border-color:var(--bc);color:var(--bc)}
+.chip.b-Monsigny  {border-color:#5a9478;color:#2d6b50}
+.chip.b-Pillon    {border-color:#c07a2f;color:#8b4a10}
+.chip.b-Bareau    {border-color:#4a6ab5;color:#2a4a8b}
+.chip.b-Baranowski{border-color:#9b5fa5;color:#6b2a7a}
+.stats{padding:5px 16px 10px;color:var(--muted);font-size:12px;font-style:italic}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px;padding:0 13px 110px}
+.card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;animation:up .3s ease both;border-left:4px solid transparent}
+.card.b-Monsigny  {border-left-color:#5a9478}
+.card.b-Pillon    {border-left-color:#c07a2f}
+.card.b-Bareau    {border-left-color:#4a6ab5}
+.card.b-Baranowski{border-left-color:#9b5fa5}
+.card:active{transform:scale(.97)}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card-img{width:100%;aspect-ratio:1;background:var(--parchment);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover}
+.card-body{padding:9px 11px 11px}
+.card-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;line-height:1.3;margin-bottom:2px}
+.card-years{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:4px}
+.branch-tags{display:flex;flex-wrap:wrap;gap:3px}
+.btag{font-size:10px;padding:2px 7px;border-radius:50px;font-weight:600}
+.btag-Monsigny  {background:#B5D5C5;color:#2d6b50}
+.btag-Pillon    {background:#F5C6A0;color:#8b4a10}
+.btag-Bareau    {background:#C5D5F0;color:#2a4a8b}
+.btag-Baranowski{background:#E8C5E8;color:#6b2a7a}
+
+.fab{position:fixed;bottom:24px;right:20px;background:linear-gradient(135deg,var(--amber),var(--amber-dark));color:var(--white);border:none;border-radius:50px;padding:15px 22px;font-size:15px;font-family:'Lora',serif;font-weight:600;box-shadow:0 6px 24px rgba(192,122,47,.45);cursor:pointer;z-index:90}
+.empty{text-align:center;padding:50px 30px;color:var(--muted);grid-column:1/-1}
+.empty-icon{font-size:56px;margin-bottom:12px}
+.empty-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);margin-bottom:6px}
+
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;background:rgba(45,26,10,.65);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.open{opacity:1;pointer-events:all}
+.ov-center{align-items:center}
+.sheet{background:var(--cream);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);padding-bottom:40px}
+.overlay.open .sheet{transform:translateY(0)}
+.handle{width:44px;height:5px;background:var(--parchment);border-radius:3px;margin:12px auto 0}
+.sheet-hdr{background:linear-gradient(135deg,var(--brown),var(--amber-dark));padding:18px 22px;border-radius:24px 24px 0 0;display:flex;align-items:center;justify-content:space-between}
+.sheet-title{font-family:'Playfair Display',serif;color:var(--cream);font-size:20px;font-weight:700}
+.btn-x{background:rgba(255,255,255,.2);border:none;border-radius:50%;width:36px;height:36px;color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sheet-body{padding:18px 22px}
+
+/* DETAIL */
+.d-photo-wrap{position:relative}
+.d-photo{width:100%;height:220px;background:var(--parchment);display:flex;align-items:center;justify-content:center;margin-top:12px;overflow:hidden}
+.d-photo img{width:100%;height:100%;object-fit:cover}
+.btn-x-abs{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.9);border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5}
+.d-body{padding:18px 22px}
+.d-name{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--brown);margin-bottom:3px}
+.d-dates{font-size:14px;color:var(--muted);font-style:italic;margin-bottom:10px}
+.d-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.badge{display:inline-block;background:var(--amber);color:var(--white);padding:3px 12px;border-radius:50px;font-size:12px}
+.sec{margin-top:14px}
+.sec-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--amber-dark);margin-bottom:8px;border-bottom:1.5px solid var(--parchment);padding-bottom:3px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ii{background:var(--white);border-radius:12px;padding:11px 13px}
+.il{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.iv{font-size:14px;font-weight:500}
+.bio{font-size:14px;line-height:1.75;white-space:pre-line}
+.map-link{color:var(--amber);text-decoration:none;font-weight:600}
+.plink{display:flex;align-items:center;gap:10px;background:var(--white);border-radius:13px;padding:9px 13px;cursor:pointer;margin-bottom:7px}
+.plink:active{background:var(--parchment)}
+.pl-av{width:42px;height:42px;border-radius:50%;background:var(--parchment);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.pl-av img{width:100%;height:100%;object-fit:cover}
+.pl-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:600}
+.pl-sub{font-size:11px;color:var(--muted);font-style:italic}
+.pl-arr{margin-left:auto;color:var(--amber);font-size:20px}
+.d-actions{display:flex;gap:10px;margin-top:14px}
+.btn-edit{flex:1;background:var(--amber);color:var(--white);border:none;border-radius:13px;padding:14px;font-size:15px;font-family:'Lora',serif;font-weight:600;cursor:pointer}
+.btn-del{background:var(--white);color:#c0392b;border:2px solid #fadbd8;border-radius:13px;padding:14px 16px;font-size:15px;font-family:'Lora',serif;cursor:pointer}
+
+/* FORM */
+.fg{margin-bottom:16px}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.fi,.fta,.fsel{width:100%;background:var(--white);border:2px solid var(--parchment);border-radius:12px;padding:12px 15px;font-size:15px;font-family:'Lora',serif;color:var(--text);outline:none;-webkit-appearance:none}
+.fi:focus,.fta:focus,.fsel:focus{border-color:var(--amber)}
+.fta{min-height:110px;resize:vertical;line-height:1.6}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo-up{border:2.5px dashed var(--amber-light);border-radius:14px;padding:20px;text-align:center;cursor:pointer;background:var(--white)}
+.ph-prev{width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:10px}
+.btn-save{width:100%;background:linear-gradient(135deg,var(--amber),var(--amber-dark));color:var(--white);border:none;border-radius:14px;padding:16px;font-size:17px;font-family:'Lora',serif;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(192,122,47,.4)}
+
+/* BRANCH CHECKBOXES */
+.branch-pills{display:flex;flex-wrap:wrap;gap:7px}
+.bpill{background:var(--white);border:2px solid var(--parchment);border-radius:50px;padding:8px 15px;font-size:13px;font-family:'Lora',serif;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none}
+.bpill.active-Monsigny  {background:#B5D5C5;border-color:#5a9478;color:#2d6b50;font-weight:600}
+.bpill.active-Pillon    {background:#F5C6A0;border-color:#c07a2f;color:#8b4a10;font-weight:600}
+.bpill.active-Bareau    {background:#C5D5F0;border-color:#4a6ab5;color:#2a4a8b;font-weight:600}
+.bpill.active-Baranowski{background:#E8C5E8;border-color:#9b5fa5;color:#6b2a7a;font-weight:600}
+
+/* PARENT PICKER */
+.btn-pick{width:100%;background:var(--parchment);border:2px dashed var(--amber-light);border-radius:12px;padding:12px;font-size:14px;font-family:'Lora',serif;color:var(--muted);cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px}
+.btn-pick.chosen{background:var(--white);border:2px solid var(--amber);color:var(--text)}
+.btn-clr{background:none;border:none;color:#c0392b;font-size:18px;cursor:pointer;padding:4px}
+.picker-sheet{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:70vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.overlay.open .picker-sheet{transform:translateY(0)}
+.picker-hdr{padding:14px 18px;border-bottom:1.5px solid var(--parchment);display:flex;align-items:center;gap:10px}
+.picker-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);flex:1}
+.picker-search{flex:2;background:var(--parchment);border:none;border-radius:50px;padding:8px 13px;font-size:14px;font-family:'Lora',serif;outline:none}
+.picker-list{padding:10px 14px 40px}
+.picker-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:11px;cursor:pointer;margin-bottom:4px}
+.picker-item:active{background:var(--parchment)}
+.picker-av{width:38px;height:38px;border-radius:50%;background:var(--parchment);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0}
+
+/* AVATAR CUSTOMIZER */
+.av-preview{width:72px;height:72px;background:var(--parchment);border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0 auto 14px}
+.color-opts{display:flex;flex-wrap:wrap;gap:8px}
+.copt{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s;flex-shrink:0}
+.copt.active{border-color:var(--amber);transform:scale(1.2)}
+.style-opts{display:flex;flex-wrap:wrap;gap:7px}
+.sopt{background:var(--parchment);border:2px solid transparent;border-radius:50px;padding:6px 13px;font-size:13px;font-family:'Lora',serif;color:var(--muted);cursor:pointer}
+.sopt.active{background:var(--amber);border-color:var(--amber);color:white;font-weight:600}
+
+/* BULK ASSIGN */
+.bulk-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--parchment)}
+.bulk-av{width:38px;height:38px;border-radius:50%;background:var(--parchment);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.bulk-av img{width:100%;height:100%;object-fit:cover}
+.bulk-info{flex:1;min-width:0}
+.bulk-name{font-family:'Playfair Display',serif;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bulk-years{font-size:11px;color:var(--muted)}
+.bulk-pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:160px;flex-shrink:0}
+.bpill-sm{font-size:10px;padding:4px 9px;border-radius:50px;border:1.5px solid var(--parchment);background:var(--white);color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'Lora',serif}
+.bpill-sm.active-Monsigny  {background:#B5D5C5;border-color:#5a9478;color:#2d6b50;font-weight:600}
+.bpill-sm.active-Pillon    {background:#F5C6A0;border-color:#c07a2f;color:#8b4a10;font-weight:600}
+.bpill-sm.active-Bareau    {background:#C5D5F0;border-color:#4a6ab5;color:#2a4a8b;font-weight:600}
+.bpill-sm.active-Baranowski{background:#E8C5E8;border-color:#9b5fa5;color:#6b2a7a;font-weight:600}
+.bulk-save-bar{position:sticky;bottom:0;background:var(--cream);padding:14px 18px;border-top:1.5px solid var(--parchment)}
+
+/* CONFIRM */
+.cbox{background:var(--white);border-radius:22px;padding:28px 24px;margin:20px;max-width:360px;width:calc(100% - 40px);text-align:center;transform:scale(.9);transition:transform .3s}
+.overlay.open .cbox{transform:scale(1)}
+.c-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);margin:10px 0 7px}
+.c-text{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.c-btns{display:flex;gap:10px}
+.btn-cy{flex:1;background:#c0392b;color:#fff;border:none;border-radius:13px;padding:13px;font-size:15px;font-family:'Lora',serif;cursor:pointer}
+.btn-cn{flex:1;background:var(--parchment);color:var(--text);border:none;border-radius:13px;padding:13px;font-size:15px;font-family:'Lora',serif;cursor:pointer}
+
+/* PIN */
+.pin-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--brown),var(--amber-dark));z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:40px 30px}
+.pin-screen.hidden{display:none}
+.pin-title{font-family:'Playfair Display',serif;color:var(--cream);font-size:24px;font-weight:700;text-align:center;margin-bottom:6px}
+.pin-sub{color:var(--amber-light);font-size:14px;font-style:italic;text-align:center;margin-bottom:36px}
+.pin-dots{display:flex;gap:14px;margin-bottom:36px}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
+.pin-dot.filled{background:var(--amber-light)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:260px}
+.pin-btn{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.2);border-radius:16px;padding:16px;font-size:22px;font-family:'Playfair Display',serif;color:var(--cream);cursor:pointer;text-align:center;transition:all .15s}
+.pin-btn:active{background:rgba(255,255,255,.3);transform:scale(.95)}
+.pin-skip{background:transparent;border-color:transparent;font-size:13px;font-family:'Lora',serif;color:var(--amber-light);padding:12px}
+.pin-err{color:#ff8a80;font-size:14px;margin-top:14px;min-height:22px;text-align:center}
+.lock-btn{position:fixed;bottom:24px;left:20px;background:rgba(74,44,17,.75);color:var(--cream);border:none;border-radius:50px;padding:11px 16px;font-size:13px;font-family:'Lora',serif;cursor:pointer;z-index:90}
+
+.card.ancestor {
+  border:3px solid var(--amber) !important;
+  box-shadow:0 0 0 2px var(--amber-light), 0 4px 20px rgba(192,122,47,.35) !important;
+}
+.ancestor-banner {
+  background:linear-gradient(135deg,var(--amber),var(--amber-dark));
+  color:white;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.5px;
+  text-align:center;
+  padding:3px 0;
+  font-family:'Lora',serif;
+}
+
+
+/* DRAG & DROP */
+.card.dragging { opacity:.4; transform:scale(.95); }
+.card.drag-over { transform:scale(1.03); box-shadow:0 0 0 3px var(--amber); }
+.gen-drop-zone {
+  grid-column:1/-1;
+  border:2.5px dashed var(--amber-light);
+  border-radius:14px;
+  padding:12px;
+  text-align:center;
+  color:var(--amber);
+  font-size:13px;
+  font-family:'Lora',serif;
+  display:none;
+  background:rgba(232,164,85,.07);
+  transition:all .2s;
+}
+.gen-drop-zone.active { display:block; }
+.gen-drop-zone.over { background:rgba(232,164,85,.25); border-color:var(--amber); font-weight:600; }
+.gen-arrows {
+  display:none;
+  position:absolute;
+  top:6px; right:6px;
+  flex-direction:column;
+  gap:2px;
+  z-index:10;
+}
+.card:hover .gen-arrows, .card.touch-show-arrows .gen-arrows { display:flex; }
+.gen-arr-btn {
+  background:rgba(255,255,255,.92);
+  border:1.5px solid var(--amber-light);
+  border-radius:6px;
+  width:26px; height:22px;
+  font-size:13px;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+.gen-arr-btn:active { background:var(--amber); color:white; }
+
+
+/* DOCUMENTS */
+.doc-item {
+  display:flex;align-items:center;gap:10px;
+  background:var(--white);border:1.5px solid var(--parchment);
+  border-radius:12px;padding:10px 13px;margin-bottom:8px;
+}
+.doc-icon { font-size:24px;flex-shrink:0 }
+.doc-name { flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
+.doc-size { font-size:11px;color:var(--muted) }
+.doc-btn { background:none;border:none;cursor:pointer;font-size:18px;padding:4px }
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--brown);color:var(--cream);padding:11px 22px;border-radius:50px;font-size:14px;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="pin-screen" id="pinScreen">
+  <div style="font-size:56px;margin-bottom:14px">🌳</div>
+  <div class="pin-title">Arbre Généalogique</div>
+  <div class="pin-sub">Entrez votre PIN pour modifier</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pp('1')">1</button>
+    <button class="pin-btn" onclick="pp('2')">2</button>
+    <button class="pin-btn" onclick="pp('3')">3</button>
+    <button class="pin-btn" onclick="pp('4')">4</button>
+    <button class="pin-btn" onclick="pp('5')">5</button>
+    <button class="pin-btn" onclick="pp('6')">6</button>
+    <button class="pin-btn" onclick="pp('7')">7</button>
+    <button class="pin-btn" onclick="pp('8')">8</button>
+    <button class="pin-btn" onclick="pp('9')">9</button>
+    <button class="pin-btn pin-skip" onclick="pinSkip()">👁️ Voir seulement</button>
+    <button class="pin-btn" onclick="pp('0')">0</button>
+    <button class="pin-btn" onclick="pdel()">⌫</button>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+</div>
+<button class="lock-btn" id="lockBtn" style="display:none" onclick="doLock()">🔒 Sperren</button>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-title">🌳 Arbre Généalogique</div>
+      <div class="hdr-sub">Monsigny · Bareau</div>
+      <div id="syncStatus" style="font-size:11px;color:var(--amber-light);margin-top:2px;transition:opacity .5s">⏳ Chargement...</div>
+    </div>
+    <div class="hdr-btns">
+      <button class="btn-hdr-ghost" onclick="toggleAncestorBar()" title="Ancêtres directs" id="btnAnc">⭐</button>
+      <button class="btn-hdr-ghost" onclick="openGedcom()" title="Importer GEDCOM">📥</button>
+      <button class="btn-hdr-ghost" onclick="openBulk()" title="Assigner branches">🌿</button>
+      <button class="btn-hdr-ghost" onclick="loadData()" title="Actualiser">🔄</button>
+      <button class="btn-hdr" onclick="openForm(null)">+ Ajouter</button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span style="color:var(--amber-light)">🔍</span>
+    <input type="search" id="searchInput" placeholder="Rechercher..." oninput="render()" autocomplete="off">
+  </div>
+</header>
+
+<!-- SORT + BRANCH FILTER -->
+
+<!-- MIGRATE BAR -->
+<div id="migrateBar" style="display:none;background:#fff3cd;border-bottom:2px solid #ffc107;padding:12px 18px;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-size:14px;font-family:'Lora',serif;flex:1">📱 Données locales trouvées sur cet appareil – les exporter vers le cloud ?</span>
+  <button onclick="migrateToCloud()" style="background:#c07a2f;color:white;border:none;border-radius:50px;padding:8px 18px;font-size:13px;font-family:'Lora',serif;font-weight:600;cursor:pointer;white-space:nowrap">☁️ Exporter maintenant</button>
+  <button onclick="document.getElementById('migrateBar').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888">✕</button>
+</div>
+
+<div class="filter-bar">
+  <span style="font-size:12px;color:var(--muted);align-self:center;flex-shrink:0">Trier :</span>
+  <div class="chip" onclick="setSort('prenom',this)">Prénom A–Z</div>
+  <div class="chip" onclick="setSort('nom',this)">Nom A–Z</div>
+  <div class="chip" onclick="setSort('naissance',this)">Naissance</div>
+  <div class="chip active" onclick="setSort('generation',this)">Génération</div>
+</div>
+<div class="filter-bar">
+  <span style="font-size:12px;color:var(--muted);align-self:center;flex-shrink:0">Branche :</span>
+  <div class="chip active" onclick="setBranche('',this)">Toutes</div>
+  <div class="chip b-Monsigny"  onclick="setBranche('Monsigny',this)">🟢 Monsigny</div>
+  <div class="chip b-Pillon"    onclick="setBranche('Pillon',this)">🟠 Pillon</div>
+  <div class="chip b-Bareau"    onclick="setBranche('Bareau',this)">🔵 Bareau</div>
+  <div class="chip b-Baranowski" onclick="setBranche('Baranowski de Rawiez',this)">🟣 Baranowski</div>
+</div>
+<div style="padding:0 16px 4px;font-size:11px;color:var(--muted);font-style:italic">💡 Plusieurs branches sélectionnables</div>
+<div class="stats" id="stats"></div>
+<div id="ancestorBar" style="display:none;padding:6px 16px 8px;align-items:center;gap:8px;flex-wrap:wrap">
+  <span style="font-size:12px;color:var(--muted);flex-shrink:0">⭐ Ancêtres de :</span>
+  <select id="ancestorRef" class="fsel" style="flex:1;min-width:0;padding:6px 10px;font-size:13px;max-width:220px" onchange="render()">
+    <option value="">— Désactiver —</option>
+  </select>
+</div>
+<div class="grid" id="grid"></div>
+<button class="fab" onclick="openForm(null)">+ Ajouter une personne</button>
+
+<!-- DETAIL -->
+<div class="overlay" id="detailOv" onclick="closeOv('detailOv')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="d-photo-wrap">
+      <div class="d-photo" id="dPhoto"></div>
+      <button class="btn-x-abs" onclick="closeOv('detailOv')">✕</button>
+    </div>
+    <div class="d-body">
+      <div class="d-name" id="dName"></div>
+      <div class="d-dates" id="dDates"></div>
+      <div class="d-badges" id="dBadges"></div>
+      <div class="info-grid" id="dInfo"></div>
+      <div id="dDocs"></div>
+      <div id="dBio"></div>
+      <div id="dParents"></div>
+      <div id="dChildren"></div>
+      <div id="dSiblings"></div>
+      <div id="dPartners"></div>
+      <div class="d-actions" style="margin-top:16px">
+        <button class="btn-edit" id="btnEdit">✏️ Modifier</button>
+        <button class="btn-del" id="btnDel">🗑️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="overlay" id="formOv" onclick="closeOv('formOv')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="formTitle">Ajouter</div>
+      <button class="btn-x" onclick="closeOv('formOv')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <!-- AVATAR -->
+      <div class="fg">
+        <label class="fl">🎨 Avatar</label>
+        <div style="background:var(--white);border-radius:14px;padding:14px">
+          <div class="av-preview" id="avPreview"></div>
+          <div class="fg" style="margin-bottom:10px">
+            <div class="fl">Teint</div>
+            <div class="color-opts" id="skinOpts">
+              <div class="copt" data-type="skin" data-val="#FDBCB4" style="background:#FDBCB4" onclick="setAv(this)"></div>
+              <div class="copt" data-type="skin" data-val="#F1C27D" style="background:#F1C27D" onclick="setAv(this)"></div>
+              <div class="copt" data-type="skin" data-val="#E0AC69" style="background:#E0AC69" onclick="setAv(this)"></div>
+              <div class="copt" data-type="skin" data-val="#C68642" style="background:#C68642" onclick="setAv(this)"></div>
+              <div class="copt" data-type="skin" data-val="#8D5524" style="background:#8D5524" onclick="setAv(this)"></div>
+              <div class="copt" data-type="skin" data-val="#4a2c11" style="background:#4a2c11" onclick="setAv(this)"></div>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:10px">
+            <div class="fl">Couleur des cheveux</div>
+            <div class="color-opts" id="hairOpts">
+              <div class="copt" data-type="hair" data-val="#1a0a00" style="background:#1a0a00" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#4a2c11" style="background:#4a2c11" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#8B4513" style="background:#8B4513" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#c07a2f" style="background:#c07a2f" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#D4A017" style="background:#D4A017" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#F5CBA7" style="background:#F5CBA7" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#CC0000" style="background:#CC0000" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#aaaaaa" style="background:#aaaaaa" onclick="setAv(this)"></div>
+              <div class="copt" data-type="hair" data-val="#eeeeee" style="background:#eeeeee;border:1px solid #ccc" onclick="setAv(this)"></div>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <div class="fl">Coiffure</div>
+            <div class="style-opts" id="styleOpts">
+              <div class="sopt" data-val="court" onclick="setAvStyle(this)">Court</div>
+              <div class="sopt" data-val="long"  onclick="setAvStyle(this)">Long</div>
+              <div class="sopt" data-val="boucle" onclick="setAvStyle(this)">Bouclé</div>
+              <div class="sopt" data-val="chignon" onclick="setAvStyle(this)">Chignon</div>
+              <div class="sopt" data-val="tresses" onclick="setAvStyle(this)">Tresses</div>
+              <div class="sopt" data-val="chauve" onclick="setAvStyle(this)">Chauve</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- PHOTO -->
+      <div class="fg">
+        <label class="fl">📷 Photo (remplace l'avatar)</label>
+        <div class="photo-up" onclick="document.getElementById('photoIn').click()">
+          <div style="font-size:34px;color:var(--amber)">📸</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:5px">Choisir depuis la galerie</div>
+          <img id="phPrev" class="ph-prev" style="display:none">
+        </div>
+        <input type="file" id="photoIn" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+      </div>
+      <!-- DOCUMENTS -->
+      <div class="fg">
+        <label class="fl">📄 Documents (actes, photos, lettres...)</label>
+        <div id="docList"></div>
+        <div class="photo-up" onclick="document.getElementById('docIn').click()" style="padding:14px">
+          <div style="font-size:28px;color:var(--amber)">📎</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px">Ajouter un document (PDF, image...)</div>
+        </div>
+        <input type="file" id="docIn" accept=".pdf,image/*" style="display:none" onchange="handleDoc(event)">
+      </div>
+
+      <!-- NAME -->
+      <div class="f2">
+        <div class="fg"><label class="fl">Prénom(s) *</label><input class="fi" id="fPre" placeholder="ex. Marie"></div>
+        <div class="fg"><label class="fl">Nom</label><input class="fi" id="fNom" placeholder="ex. Dupont"></div>
+      </div>
+      <!-- DATES -->
+      <div class="f2">
+        <div class="fg"><label class="fl">🎂 Naissance</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="fi" id="fNais" placeholder="JJ.MM.AAAA" style="flex:1">
+          <button type="button" onclick="setUnknown('fNais')" style="background:var(--parchment);border:2px solid var(--parchment);border-radius:10px;padding:10px;font-size:12px;font-family:'Lora',serif;color:var(--muted);cursor:pointer;white-space:nowrap">Inconnu</button>
+        </div></div>
+        <div class="fg"><label class="fl">✝ Décès</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="fi" id="fDec" placeholder="JJ.MM.AAAA" style="flex:1">
+          <button type="button" onclick="setUnknown('fDec')" style="background:var(--parchment);border:2px solid var(--parchment);border-radius:10px;padding:10px;font-size:12px;font-family:'Lora',serif;color:var(--muted);cursor:pointer;white-space:nowrap">Inconnu</button>
+        </div></div>
+      </div>
+      <!-- LIEUX -->
+      <div class="f2">
+        <div class="fg"><label class="fl">📍 Lieu de naissance</label><input class="fi" id="fLN" placeholder="ex. Paris"></div>
+        <div class="fg"><label class="fl">📍 Lieu de décès</label><input class="fi" id="fLD" placeholder="ex. Lyon"></div>
+      </div>
+      <!-- BRANCHES -->
+      <div class="fg">
+        <label class="fl">🌿 Branche(s) — plusieurs possible</label>
+        <div class="branch-pills">
+          <div class="bpill" data-b="Monsigny"             onclick="toggleBpill(this)">🟢 Monsigny</div>
+          <div class="bpill" data-b="Pillon"               onclick="toggleBpill(this)">🟠 Pillon</div>
+          <div class="bpill" data-b="Bareau"               onclick="toggleBpill(this)">🔵 Bareau</div>
+          <div class="bpill" data-b="Baranowski de Rawiez" onclick="toggleBpill(this)">🟣 Baranowski</div>
+        </div>
+      </div>
+      <!-- PARTNER -->
+      <div class="fg">
+        <label class="fl">💑 Partenaire(s)</label>
+        <div id="partnerList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div>
+        <button type="button" class="btn-pick" onclick="openPicker('partner')">+ Ajouter un(e) partenaire</button>
+      </div>
+
+      <!-- PARENTS -->
+      <div class="fg">
+        <label class="fl">👨 Père</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" class="btn-pick" id="btnPere" onclick="openPicker('pere')">— Choisir le père —</button>
+          <button type="button" class="btn-clr" id="clrPere" onclick="clearParent('pere')" style="display:none">✕</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">👩 Mère</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" class="btn-pick" id="btnMere" onclick="openPicker('mere')">— Choisir la mère —</button>
+          <button type="button" class="btn-clr" id="clrMere" onclick="clearParent('mere')" style="display:none">✕</button>
+        </div>
+      </div>
+            <!-- GÉNÉRATION MANUELLE -->
+      <div class="fg">
+        <label class="fl">🌳 Génération (optionnel)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" onclick="changeGenOffset(-1)" style="background:var(--parchment);border:2px solid var(--amber-light);border-radius:10px;width:40px;height:40px;font-size:20px;cursor:pointer">−</button>
+          <div style="flex:1;background:var(--white);border:2px solid var(--parchment);border-radius:12px;padding:10px;text-align:center;font-family:'Playfair Display',serif;font-size:15px" id="genOffsetDisplay">Automatique</div>
+          <button type="button" onclick="changeGenOffset(+1)" style="background:var(--parchment);border:2px solid var(--amber-light);border-radius:10px;width:40px;height:40px;font-size:20px;cursor:pointer">+</button>
+          <button type="button" onclick="resetGenOffset()" style="background:var(--parchment);border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-family:'Lora',serif;color:var(--muted);cursor:pointer">Auto</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">− et + pour déplacer vers une génération différente</div>
+      </div>
+<!-- BIO -->
+      <div class="fg"><label class="fl">📖 Biographie</label><textarea class="fta" id="fBio" placeholder="Souvenirs, histoire de vie..."></textarea></div>
+      <div class="fg"><label class="fl">✨ Anecdotes</label><textarea class="fta" id="fAne" placeholder="Petites histoires, moments drôles..."></textarea></div>
+      <button class="btn-save" onclick="savePerson()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARENT PICKER -->
+<div class="overlay" id="pickerOv" onclick="closeOv('pickerOv')">
+  <div class="picker-sheet" onclick="event.stopPropagation()">
+    <div class="picker-hdr">
+      <div class="picker-title" id="pickerTitle">Choisir</div>
+      <input class="picker-search" id="pickerQ" type="text" placeholder="🔍 Rechercher..." oninput="renderPicker()">
+      <button class="btn-x" style="background:var(--parchment);color:var(--text)" onclick="closeOv('pickerOv')">✕</button>
+    </div>
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+
+<!-- BULK ASSIGN -->
+<div class="overlay" id="bulkOv" onclick="closeOv('bulkOv')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">🌿 Assigner les branches</div>
+        <input style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:50px;padding:7px 14px;color:var(--cream);font-size:14px;font-family:'Lora',serif;outline:none;width:100%;margin-top:10px" 
+          type="text" id="bulkQ" placeholder="🔍 Rechercher..." oninput="renderBulk()">
+      </div>
+      <button class="btn-x" onclick="closeOv('bulkOv')">✕</button>
+    </div>
+    <!-- Bulk filters -->
+    <div class="filter-bar" style="padding-top:10px">
+      <div class="chip active" onclick="setBulkF('',this)">Tous</div>
+      <div class="chip" onclick="setBulkF('none',this)">⚠️ Sans branche</div>
+      <div class="chip b-Monsigny"   onclick="setBulkF('Monsigny',this)">🟢 Monsigny</div>
+      <div class="chip b-Pillon"     onclick="setBulkF('Pillon',this)">🟠 Pillon</div>
+      <div class="chip b-Bareau"     onclick="setBulkF('Bareau',this)">🔵 Bareau</div>
+      <div class="chip b-Baranowski" onclick="setBulkF('Baranowski de Rawiez',this)">🟣 Baranowski</div>
+    </div>
+    <div class="stats" id="bulkStats"></div>
+    <div id="bulkList"></div>
+    <div class="bulk-save-bar">
+      <button class="btn-save" style="margin-top:0" onclick="saveBulk()">💾 Tout enregistrer</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- GEDCOM IMPORT -->
+<div class="overlay" id="gedcomOv" onclick="closeOv('gedcomOv')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-hdr">
+      <div>
+        <div class="sheet-title">📥 Importer GEDCOM</div>
+        <div style="font-size:12px;color:var(--amber-light);margin-top:3px">Fichier .ged depuis MyHeritage, Geneanet...</div>
+      </div>
+      <button class="btn-x" onclick="closeOv('gedcomOv')">✕</button>
+    </div>
+    <div class="sheet-body">
+
+      <!-- STEP 1: Upload -->
+      <div id="gedStep1">
+        <!-- Delete GEDCOM data -->
+        <div style="background:#fff0f0;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <div style="flex:1;font-size:13px;color:#8b0000;font-family:'Lora',serif">🗑️ Supprimer toutes les personnes importées via GEDCOM</div>
+          <button onclick="deleteGedcomPersons()" style="background:#c0392b;color:white;border:none;border-radius:50px;padding:8px 14px;font-size:13px;font-family:'Lora',serif;cursor:pointer;flex-shrink:0">Supprimer</button>
+        </div>
+        <div style="background:var(--white);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+          <div style="font-size:48px;margin-bottom:10px">📂</div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);margin-bottom:6px">Choisir un fichier .ged</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Exporté depuis MyHeritage, Geneanet, Ancestry...</div>
+          <button onclick="document.getElementById('gedFile').click()" class="btn-save" style="margin-top:0;width:auto;padding:12px 28px">Choisir le fichier</button>
+          <input type="file" id="gedFile" accept=".ged,.gedcom" style="display:none" onchange="parseGedcom(event)">
+        </div>
+        <div style="background:var(--parchment);border-radius:14px;padding:16px">
+          <div style="font-family:'Playfair Display',serif;font-size:15px;color:var(--brown);margin-bottom:12px">📖 Comment exporter ?</div>
+          <div style="margin-bottom:12px">
+            <div style="font-weight:600;font-size:14px;color:var(--amber-dark);margin-bottom:4px">🔵 MyHeritage</div>
+            <div style="font-size:13px;line-height:1.7">Gérer l'arbre → <b>Exporter l'arbre</b> → GEDCOM</div>
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--amber-dark);margin-bottom:4px">🟢 Geneanet</div>
+            <div style="font-size:13px;line-height:1.7">Mon Espace → ton arbre → <b>Exporter</b> → Format GEDCOM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Filter choice -->
+      <div id="gedStep2" style="display:none">
+        <div id="gedSummary" style="background:var(--white);border-radius:14px;padding:16px;margin-bottom:14px;text-align:center"></div>
+        
+        <!-- Filter mode -->
+        <div style="background:var(--white);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-family:'Playfair Display',serif;font-size:15px;color:var(--brown);margin-bottom:12px">🔍 Que voulez-vous importer ?</div>
+          
+          <!-- Root person picker -->
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Personne de référence</div>
+            <input class="fi" id="gedRootSearch" placeholder="🔍 Chercher une personne..." oninput="filterGedRoot()" style="margin-bottom:6px">
+            <select class="fsel" id="gedRootSelect" style="margin-bottom:0" onchange="updateGedPreview()">
+              <option value="">— Choisir une personne de référence —</option>
+            </select>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;align-items:center;gap:10px;background:var(--parchment);border-radius:10px;padding:10px 12px;cursor:pointer">
+              <input type="radio" name="gedMode" value="all" checked onchange="updateGedPreview()" style="width:18px;height:18px;accent-color:var(--amber)">
+              <div><div style="font-size:14px;font-weight:600">Tout importer</div><div style="font-size:12px;color:var(--muted)">Toutes les personnes du fichier</div></div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;background:var(--parchment);border-radius:10px;padding:10px 12px;cursor:pointer">
+              <input type="radio" name="gedMode" value="ancestors" onchange="updateGedPreview()" style="width:18px;height:18px;accent-color:var(--amber)">
+              <div><div style="font-size:14px;font-weight:600">⬆️ Seulement les ancêtres directs</div><div style="font-size:12px;color:var(--muted)">Parents, grands-parents, arrière-grands-parents...</div></div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;background:var(--parchment);border-radius:10px;padding:10px 12px;cursor:pointer">
+              <input type="radio" name="gedMode" value="descendants" onchange="updateGedPreview()" style="width:18px;height:18px;accent-color:var(--amber)">
+              <div><div style="font-size:14px;font-weight:600">⬇️ Seulement les descendants directs</div><div style="font-size:12px;color:var(--muted)">Enfants, petits-enfants, arrière-petits-enfants...</div></div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;background:var(--parchment);border-radius:10px;padding:10px 12px;cursor:pointer">
+              <input type="radio" name="gedMode" value="both" onchange="updateGedPreview()" style="width:18px;height:18px;accent-color:var(--amber)">
+              <div><div style="font-size:14px;font-weight:600">⬆️⬇️ Ancêtres + Descendants</div><div style="font-size:12px;color:var(--muted)">Toute la ligne directe</div></div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;background:var(--parchment);border-radius:10px;padding:10px 12px;cursor:pointer">
+              <input type="radio" name="gedMode" value="manual" onchange="updateGedPreview()" style="width:18px;height:18px;accent-color:var(--amber)">
+              <div><div style="font-size:14px;font-weight:600">✋ Sélection manuelle</div><div style="font-size:12px;color:var(--muted)">Choisir chaque personne individuellement</div></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Preview list -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--brown)">
+            Aperçu : <span id="gedSelCount">0</span> sélectionnée(s)
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="gedSelectAll(true)" style="background:var(--amber);color:white;border:none;border-radius:50px;padding:5px 12px;font-size:12px;font-family:'Lora',serif;cursor:pointer">Tout ✓</button>
+            <button onclick="gedSelectAll(false)" style="background:var(--parchment);color:var(--text);border:none;border-radius:50px;padding:5px 12px;font-size:12px;font-family:'Lora',serif;cursor:pointer">Rien ✗</button>
+          </div>
+        </div>
+        <input class="fi" id="gedPersonSearch" placeholder="🔍 Rechercher dans la liste..." oninput="renderGedList()" style="margin-bottom:8px">
+        <div id="gedPreview" style="max-height:240px;overflow-y:auto;background:var(--white);border-radius:14px;padding:10px;margin-bottom:14px"></div>
+        
+        <div style="display:flex;gap:10px">
+          <button onclick="gedReset()" style="flex:1;background:var(--parchment);border:none;border-radius:13px;padding:14px;font-size:15px;font-family:'Lora',serif;cursor:pointer">← Retour</button>
+          <button onclick="gedImport()" class="btn-save" style="flex:2;margin-top:0">✅ Importer</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="overlay ov-center" id="confirmOv">
+  <div class="cbox">
+    <div style="font-size:44px">⚠️</div>
+    <div class="c-title">Supprimer ?</div>
+    <div class="c-text" id="confirmTxt"></div>
+    <div class="c-btns">
+      <button class="btn-cn" onclick="closeOv('confirmOv')">Annuler</button>
+      <button class="btn-cy" id="btnYes">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const PIN = '2225';
+const KEY = 'arbre-v5';
+const BRANCHES = ['Monsigny','Pillon','Bareau','Baranowski de Rawiez'];
+const BC = {
+  'Monsigny':             {bg:'#B5D5C5', text:'#2d6b50'},
+  'Pillon':               {bg:'#F5C6A0', text:'#8b4a10'},
+  'Bareau':               {bg:'#C5D5F0', text:'#2a4a8b'},
+  'Baranowski de Rawiez': {bg:'#E8C5E8', text:'#6b2a7a'},
+};
+const HAIRSTYLES = {
+  court:   (c) => `<ellipse cx="50" cy="26" rx="21" ry="9" fill="${c}"/>`,
+  long:    (c) => `<ellipse cx="50" cy="26" rx="21" ry="9" fill="${c}"/><rect x="29" y="26" width="7" height="28" rx="4" fill="${c}"/><rect x="64" y="26" width="7" height="28" rx="4" fill="${c}"/>`,
+  boucle:  (c) => `<circle cx="31" cy="27" r="10" fill="${c}"/><circle cx="43" cy="21" r="10" fill="${c}"/><circle cx="57" cy="21" r="10" fill="${c}"/><circle cx="69" cy="27" r="10" fill="${c}"/>`,
+  chignon: (c) => `<ellipse cx="50" cy="26" rx="21" ry="9" fill="${c}"/><circle cx="50" cy="14" r="8" fill="${c}"/>`,
+  chauve:  ()  => '',
+  tresses: (c) => `<ellipse cx="50" cy="26" rx="21" ry="9" fill="${c}"/><rect x="30" y="28" width="6" height="32" rx="3" fill="${c}"/><rect x="64" y="28" width="6" height="32" rx="3" fill="${c}"/>`,
+};
+
+// ============================================================
+// DATA
+// ============================================================
+let persons = [];
+let sortMode = 'generation';
+let brancheFilters = new Set(); // multiple branches can be active
+let editingId = null;
+let photoData = null;
+let formPereId = null;
+let formMereId = null;
+let formPartnerIds = [];
+let formAv = {skin:'#FDBCB4', hair:'#4a2c11', style:'court'};
+let pickerTarget = null;
+let bulkChanges = {};
+let bulkFilter = '';
+let isUnlocked = false;
+let pinInput = '';
+
+const BIN_ID = '69975946d0ea881f40c79dfb';
+const BIN_KEY = '$2a$10$V1K8NkM0TF2TJs.85JhsO.2TU/8SHOE5ChbUCU8ZI0rHVUKHKyhQK';
+const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+async function loadData() {
+  showSyncStatus('⏳ Chargement...');
+  try {
+    const r = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Master-Key': BIN_KEY }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const cloudPersons = data.record.persons || [];
+      
+      // Check if cloud is empty but local has data → offer migration
+      let localPersons = [];
+      try { const l = localStorage.getItem(KEY); localPersons = l ? JSON.parse(l) : []; } catch {}
+      // Also check old key
+      let oldPersons = [];
+      try { const l = localStorage.getItem('arbre-v3'); oldPersons = l ? JSON.parse(l) : []; } catch {}
+      const bestLocal = localPersons.length >= oldPersons.length ? localPersons : oldPersons;
+
+      if (cloudPersons.length === 0 && bestLocal.length > 0) {
+        persons = bestLocal;
+        render();
+        showSyncStatus('⚠️ Données locales trouvées');
+        setTimeout(() => {
+          document.getElementById('migrateBar').style.display = 'flex';
+        }, 500);
+        return;
+      }
+      
+      persons = cloudPersons;
+      showSyncStatus('✅ Synchronisé');
+      setTimeout(() => hideSyncStatus(), 2000);
+    } else {
+      throw new Error('fetch failed');
+    }
+  } catch {
+    try { const l = localStorage.getItem(KEY); persons = l ? JSON.parse(l) : demo(); } catch { persons = demo(); }
+    showSyncStatus('⚠️ Hors ligne');
+    setTimeout(() => hideSyncStatus(), 3000);
+  }
+  render();
+}
+
+async function migrateToCloud() {
+  document.getElementById('migrateBar').style.display = 'none';
+  showSyncStatus('🔄 Export vers le cloud...');
+  try {
+    const r = await fetch(BIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
+      body: JSON.stringify({ persons })
+    });
+    if (r.ok) {
+      showSyncStatus('✅ Toutes les données sont dans le cloud !');
+      setTimeout(() => hideSyncStatus(), 3000);
+      showToast('🎉 ' + persons.length + ' personnes exportées !');
+    }
+  } catch {
+    showSyncStatus('⚠️ Erreur export');
+    setTimeout(() => hideSyncStatus(), 3000);
+  }
+}
+
+async function saveData() {
+  // Save full data locally (with photos)
+  try { localStorage.setItem(KEY, JSON.stringify(persons)); } catch {}
+  
+  showSyncStatus('🔄 Synchronisation...');
+  try {
+    const r = await fetch(BIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
+      body: JSON.stringify({ persons })
+    });
+    if (r.ok) {
+      showSyncStatus('✅ Synchronisé');
+      setTimeout(() => hideSyncStatus(), 2000);
+    } else throw new Error('save failed');
+  } catch {
+    showSyncStatus('⚠️ Sauvegarde locale seulement');
+    setTimeout(() => hideSyncStatus(), 3000);
+  }
+}
+
+function showSyncStatus(msg) {
+  let el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+}
+function hideSyncStatus() {
+  let el = document.getElementById('syncStatus');
+  if (el) el.style.opacity = '0';
+}
+
+function demo() {
+  return [
+    {id:'p1', pre:'Hervé Gilles',         nom:'Bareau',   nais:'20.12.1940', dec:'',   lieuN:'Paris',      lieuD:'', photo:'', bio:'', ane:'', branches:['Bareau'],    pereId:null, mereId:null, av:{skin:'#FDBCB4',hair:'#4a2c11',style:'court'}},
+    {id:'p2', pre:'Michèle Marie-Louise', nom:'Monsigny', nais:'30.09.1935', dec:'',   lieuN:'Paris',      lieuD:'', photo:'', bio:'', ane:'', branches:['Monsigny'],   pereId:null, mereId:null, av:{skin:'#F1C27D',hair:'#1a0a00',style:'long'}},
+    {id:'p3', pre:'Alexandrine',          nom:'Bareau',   nais:'18.09.1974', dec:'',   lieuN:'Winterthur', lieuD:'', photo:'', bio:'', ane:'', branches:['Bareau','Monsigny'], pereId:'p1', mereId:'p2', av:{skin:'#FDBCB4',hair:'#8B4513',style:'long'}},
+    {id:'p4', pre:'Géraldine',            nom:'Bareau',   nais:'20.04.1976', dec:'',   lieuN:'Winterthur', lieuD:'', photo:'', bio:'', ane:'', branches:['Bareau','Monsigny'], pereId:'p1', mereId:'p2', av:{skin:'#FDBCB4',hair:'#c07a2f',style:'boucle'}},
+    {id:'p5', pre:'Virginie',             nom:'Flesch',   nais:'23.11.1956', dec:'',   lieuN:'Winterthur', lieuD:'', photo:'', bio:'', ane:'', branches:['Monsigny'],   pereId:null, mereId:'p2', av:{skin:'#E0AC69',hair:'#D4A017',style:'chignon'}},
+  ];
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function getBranches(p) {
+  if (!p.branches) return p.branche ? (Array.isArray(p.branche)?p.branche:[p.branche]) : [];
+  return Array.isArray(p.branches) ? p.branches : [p.branches];
+}
+
+
+// Raw generation based on ancestors in system
+// Uses parent chain even when birth dates are missing
+let _genCache = null;
+
+function buildGenCache() {
+  _genCache = {};
+  const gen = {};
+
+  // STEP 1: Pure top-down from parent chain.
+  // This is always 100% correct for anyone with parents in the system.
+  function topDown(id, visited) {
+    if (!id) return undefined;
+    if (gen[id] !== undefined) return gen[id];
+    if (visited.has(id)) return undefined; // cycle guard
+    visited.add(id);
+    const p = persons.find(x=>x.id===id);
+    if (!p) return undefined;
+    if (!p.pereId && !p.mereId) {
+      gen[id] = 0; return 0;
+    }
+    const pg = p.pereId ? topDown(p.pereId, new Set(visited)) : undefined;
+    const mg = p.mereId ? topDown(p.mereId, new Set(visited)) : undefined;
+    const vals = [pg, mg].filter(v=>v!==undefined);
+    const g = vals.length ? Math.max(...vals)+1 : 0;
+    gen[id] = g; return g;
+  }
+  persons.forEach(p => topDown(p.id, new Set()));
+
+  // STEP 2: For persons with NO parents in system,
+  // infer from their children (gen = min child gen - 1).
+  // Only touches true founders (no pereId, no mereId).
+  persons.forEach(p => {
+    if (p.pereId || p.mereId) return; // already handled by topDown
+    const children = persons.filter(c => c.pereId===p.id || c.mereId===p.id);
+    const childGens = children.map(c=>gen[c.id]).filter(g=>g!==undefined);
+    if (childGens.length > 0) {
+      gen[p.id] = Math.min(...childGens) - 1;
+    }
+  });
+
+  // STEP 3: Align partners to same generation.
+  // Only adjust founders (no parents in system) to match their partner.
+  // Never touch persons whose gen was set by parent chain.
+  function getPartners(p) {
+    return getStrictPartners(p);
+  }
+
+  persons.forEach(p => {
+    if (p.pereId || p.mereId) return; // only founders
+    const myGen = gen[p.id];
+    getStrictPartners(p).forEach(pid => {
+      const partnerGen = gen[pid];
+      if (partnerGen !== undefined && myGen !== partnerGen) {
+        // Align founder to partner - but only if partner's gen comes from their own parents
+        const partner = persons.find(x=>x.id===pid);
+        if (partner && (partner.pereId || partner.mereId)) {
+          gen[p.id] = partnerGen;
+        }
+      }
+    });
+  });
+
+  // STEP 4: Normalize so minimum generation = 0
+  const allVals = Object.values(gen).filter(v=>v!==undefined);
+  const minG = allVals.length ? Math.min(...allVals) : 0;
+  persons.forEach(p => {
+    _genCache[p.id] = (gen[p.id] !== undefined ? gen[p.id] - minG : 0);
+  });
+
+  // STEP 5: Validation - ensure parent is ALWAYS strictly above child
+  // If parent gen >= child gen, push parent up
+  let fixPasses = 5;
+  while (fixPasses-- > 0) {
+    let fixed = false;
+    persons.forEach(p => {
+      const childGen = _genCache[p.id] ?? 0;
+      [p.pereId, p.mereId].forEach(pid => {
+        if (!pid) return;
+        const parentGen = _genCache[pid] ?? 0;
+        if (parentGen >= childGen) {
+          _genCache[pid] = childGen - 1;
+          fixed = true;
+        }
+      });
+    });
+    if (!fixed) break;
+  }
+
+  // STEP 6: Re-normalize after validation fixes
+  const allVals2 = Object.values(_genCache);
+  const minG2 = Math.min(...allVals2);
+  if (minG2 !== 0) {
+    Object.keys(_genCache).forEach(id => { _genCache[id] -= minG2; });
+  }
+}
+
+function getGeneration(p) {
+  if (!_genCache) buildGenCache();
+  const base = _genCache[p.id] ?? 0;
+  return base + (p.genOffset || 0);
+}
+
+function calcAge(b) {
+  if (!b) return 50;
+  const p = b.split('.'); return p.length>=3 ? new Date().getFullYear()-parseInt(p[2]) : 50;
+}
+
+function birthYear(p) {
+  if (!p.nais) return null;
+  const pts = p.nais.split('.'); return pts.length>=3 ? parseInt(pts[2]) : null;
+}
+
+function fmtYears(p) {
+  if (p.nais && p.dec) return `* ${p.nais}  ✝ ${p.dec}`;
+  if (p.nais) return `* ${p.nais}`;
+  return '';
+}
+
+function avatar(p, size) {
+  const av = p.av || {};
+  const skin = av.skin || '#FDBCB4';
+  const hair = av.hair || '#4a2c11';
+  const style = av.style || 'court';
+  const w = size==='lg' ? 100 : size==='sm' ? 42 : 76;
+  const hairFn = HAIRSTYLES[style] || HAIRSTYLES.court;
+  return `<svg width="${w}" height="${w}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="88" rx="30" ry="16" fill="${skin}" opacity=".5"/>
+    <rect x="44" y="57" width="12" height="12" rx="5" fill="${skin}"/>
+    <circle cx="50" cy="44" r="22" fill="${skin}"/>
+    ${hairFn(hair)}
+    <circle cx="43" cy="42" r="2.5" fill="#2d1a0a"/>
+    <circle cx="57" cy="42" r="2.5" fill="#2d1a0a"/>
+    <circle cx="44" cy="41" r="1" fill="white"/>
+    <circle cx="58" cy="41" r="1" fill="white"/>
+    <path d="M43 52 Q50 57 57 52" stroke="#2d1a0a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function branchTagsHtml(branches) {
+  return branches.map(b => {
+    const key = b.split(' ')[0];
+    return `<span class="btag btag-${key}">${b}</span>`;
+  }).join('');
+}
+
+function personImgHtml(p, size) {
+  return p.photo ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">` : avatar(p, size);
+}
+
+// ============================================================
+// RENDER GRID
+// ============================================================
+
+
+// STRICT partner detection:
+// Only returns real partners - never parents, children, siblings or other relatives
+// Case 1: explicitly listed in partnerIds (mutual)
+// Case 2: both listed as pereId + mereId of the SAME child
+function getStrictPartners(p) {
+  const parentIds = new Set([p.pereId, p.mereId].filter(Boolean));
+  const childIds  = new Set(persons.filter(c => c.pereId===p.id || c.mereId===p.id).map(c=>c.id));
+  const result    = new Set();
+
+  const safe = (id) => id && !parentIds.has(id) && !childIds.has(id) && id !== p.id;
+
+  // Case 1: explicit partnerIds (both directions)
+  (p.partnerIds||[]).forEach(pid => { if (safe(pid)) result.add(pid); });
+  persons.forEach(x => { if ((x.partnerIds||[]).includes(p.id) && safe(x.id)) result.add(x.id); });
+
+  // Case 2: share the SAME child as pereId + mereId
+  persons.forEach(c => {
+    if (!c.pereId || !c.mereId) return;           // child needs BOTH parents
+    if (c.pereId !== p.id && c.mereId !== p.id) return; // p must be a parent
+    const other = c.pereId === p.id ? c.mereId : c.pereId;
+    if (safe(other)) result.add(other);
+  });
+
+  return result;
+}
+
+function getCoupleKey(p) {
+  const pids = getStrictPartners(p);
+  if (pids.size === 0) return p.id;
+  return [p.id, ...pids].sort().join('|');
+}
+
+function sortByGenerationWithCouples(list) {
+  // Group by generation
+  const byGen = {};
+  list.forEach(p => {
+    const g = getGeneration(p);
+    if (!byGen[g]) byGen[g] = [];
+    byGen[g].push(p);
+  });
+  
+  const result = [];
+  Object.keys(byGen).sort((a,b)=>a-b).forEach(g => {
+    const group = byGen[g];
+    const placed = new Set();
+    const ordered = [];
+    
+    // First pass: place couples together
+    group.forEach(p => {
+      if (placed.has(p.id)) return;
+      placed.add(p.id);
+      ordered.push(p);
+      
+      // Find partner(s) in same generation group
+      const pids = new Set(p.partnerIds||[]);
+      persons.forEach(c => {
+        if ((c.pereId===p.id||c.mereId===p.id) && c.pereId && c.mereId) {
+          const other = c.pereId===p.id ? c.mereId : c.pereId;
+          pids.add(other);
+        }
+      });
+      persons.forEach(x => { if((x.partnerIds||[]).includes(p.id)) pids.add(x.id); });
+      
+      pids.forEach(pid => {
+        const partner = group.find(x=>x.id===pid);
+        if (partner && !placed.has(partner.id)) {
+          placed.add(partner.id);
+          ordered.push(partner);
+        }
+      });
+    });
+    
+    result.push(...ordered);
+  });
+  
+  return result;
+}
+
+
+function render() {
+  const q = (document.getElementById('searchInput').value||'').toLowerCase().trim();
+  let list = persons.filter(p => {
+    const full = (p.pre+' '+p.nom).toLowerCase();
+    const matchQ = !q || full.includes(q) || (p.lieuN||'').toLowerCase().includes(q);
+    const branches = getBranches(p);
+    const matchB = brancheFilters.size === 0 || branches.some(b => brancheFilters.has(b));
+    return matchQ && matchB;
+  });
+
+  if (sortMode === 'generation') {
+    list = sortByGenerationWithCouples(list);
+  } else {
+    list.sort((a,b) => {
+      if (sortMode==='naissance') return (birthYear(a)||9999)-(birthYear(b)||9999);
+      if (sortMode==='nom') {
+        const nc = (a.nom||'').localeCompare(b.nom||'','fr');
+        return nc !== 0 ? nc : a.pre.localeCompare(b.pre,'fr');
+      }
+      return a.pre.localeCompare(b.pre,'fr');
+    });
+  }
+
+  const genLabel = sortMode==='generation' ? ' · trié par génération' : '';
+
+  const brancheLabel = brancheFilters.size > 1 ? ` · ${brancheFilters.size} branches` : '';
+  document.getElementById('stats').textContent = list.length===persons.length
+    ? `${persons.length} personne${persons.length>1?'s':''} dans l'arbre${genLabel}${brancheLabel}`
+    : `${list.length} sur ${persons.length} personnes${genLabel}${brancheLabel}`;
+
+  const grid = document.getElementById('grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Aucun résultat</div></div>`;
+    return;
+  }
+
+  // Ancestor set
+  const ancestorBar = document.getElementById('ancestorBar');
+  const ancestorRefId = document.getElementById('ancestorRef') ? document.getElementById('ancestorRef').value : '';
+  const ancestorIds = new Set();
+  if (ancestorRefId) getAncestorIds(ancestorRefId, ancestorIds);
+  ancestorIds.delete(ancestorRefId); // don't highlight the reference person itself
+
+  // Build couple pastel color map (for card body background)
+  const PASTEL = ['#ffd6d6','#d6e8ff','#d6ffd9','#fff3d6','#ead6ff','#ffd6f0','#d6fff8','#fff8d6','#fce4d6','#ddf0d6'];
+  const coupleMap = {}; // personId -> pastel color
+  let _ci = 0;
+  const _seen = new Set();
+  const listIds = new Set(list.map(x=>x.id)); // only visible persons
+  list.forEach(p => {
+    const pids = new Set();
+    // Use strict partner detection, only include visible partners
+    getStrictPartners(p).forEach(pid => { if (listIds.has(pid)) pids.add(pid); });
+    // Only color if there is at least one VISIBLE partner
+    if (pids.size>0) {
+      const key=[p.id,...pids].sort().join('|');
+      if (!_seen.has(key)){
+        _seen.add(key);
+        const col=PASTEL[_ci%PASTEL.length]; _ci++;
+        [p.id,...pids].forEach(id=>{if(!coupleMap[id])coupleMap[id]=col;});
+      }
+    }
+  });
+
+  // generation dividers handled inline
+  let _lastGen = -1;
+  grid.innerHTML = list.map((p,i) => {
+    let _divider = '';
+    if (sortMode === 'generation') {
+      const _g = getGeneration(p);
+      if (_g !== _lastGen) {
+        _lastGen = _g;
+        const _gNames = ['Génération 1 – Fondateurs','Génération 2','Génération 3','Génération 4','Génération 5'];
+        _divider = `
+          <div class="gen-drop-zone" data-gen="${_g}" id="dropzone-${_g}"
+            ondragover="dropZoneOver(event,${_g})"
+            ondragleave="dropZoneLeave(event)"
+            ondrop="dropOnZone(event,${_g})">
+            ➕ Déposer ici pour mettre en Génération ${_g+1}
+          </div>
+          <div style="grid-column:1/-1;padding:10px 4px 4px;font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--amber-dark);border-bottom:2px solid var(--parchment);margin-top:4px">
+            ${_gNames[_g]||'Génération '+(_g+1)}
+          </div>`;
+      }
+    }
+        const branches = getBranches(p);
+    const firstKey = branches.length ? branches[0].split(' ')[0] : '';
+    
+    const coupleCol = coupleMap[p.id] || '';
+    const isAnc = ancestorIds.has(p.id);
+    const ancBanner = isAnc ? `<div class="ancestor-banner">⭐ ANCÊTRE DIRECT</div>` : '';
+    const isGenMode = sortMode === 'generation';
+    const arrows = isGenMode ? `
+      <div class="gen-arrows">
+        <button class="gen-arr-btn" onclick="event.stopPropagation();moveGeneration('${p.id}',-1)" title="Génération plus haute">↑</button>
+        <button class="gen-arr-btn" onclick="event.stopPropagation();moveGeneration('${p.id}',+1)" title="Génération plus basse">↓</button>
+      </div>` : '';
+    const dragAttrs = isGenMode
+      ? `draggable="true"
+         ondragstart="dragStart(event,'${p.id}')"
+         ondragend="dragEnd(event)"
+         ontouchstart="touchStart(event,'${p.id}')"
+         ontouchend="touchEnd(event)"
+         ontouchmove="touchMove(event)"`
+      : '';
+    return _divider + `<div class="card ${firstKey?'b-'+firstKey:''} ${isAnc?'ancestor':''}"
+      style="animation-delay:${Math.min(i*.04,.6)}s;position:relative;cursor:${isGenMode?'grab':'pointer'}"
+      ${dragAttrs}
+      onclick="handleCardClick(event,'${p.id}')">
+      ${ancBanner}
+      ${arrows}
+      <div class="card-img">${personImgHtml(p,'md')}</div>
+      <div class="card-body" style="${coupleCol?'background:'+coupleCol+';border-radius:0 0 12px 8px':''}">
+        <div class="card-name">${p.pre} ${p.nom}</div>
+        <div class="card-years">${fmtYears(p)}</div>
+        <div class="branch-tags">${branchTagsHtml(branches)}</div>
+      </div>
+    </div>`;
+
+  }).join('');
+}
+
+function setSort(mode, el) {
+  sortMode = mode;
+  document.querySelectorAll('.filter-bar .chip').forEach(c => { if(!c.classList.contains('b-Monsigny')&&!c.classList.contains('b-Pillon')&&!c.classList.contains('b-Bareau')&&!c.classList.contains('b-Baranowski')) c.classList.remove('active'); });
+  el.classList.add('active');
+  render();
+}
+
+function setBranche(b, el) {
+  const bars = document.querySelectorAll('.filter-bar');
+  const allChip = bars[1].querySelector('.chip');
+  
+  if (b === '') {
+    // "Toutes" clicked → clear all
+    brancheFilters.clear();
+    bars[1].querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    allChip.classList.add('active');
+  } else {
+    // Toggle this branch
+    if (brancheFilters.has(b)) {
+      brancheFilters.delete(b);
+      el.classList.remove('active');
+    } else {
+      brancheFilters.add(b);
+      el.classList.add('active');
+    }
+    // Update "Toutes" chip
+    if (brancheFilters.size === 0) allChip.classList.add('active');
+    else allChip.classList.remove('active');
+  }
+  render();
+}
+
+// ============================================================
+// DETAIL
+// ============================================================
+function openDetail(id) {
+  const p = persons.find(x=>x.id===id); if(!p) return;
+
+  document.getElementById('dPhoto').innerHTML = p.photo
+    ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`
+    : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%">${avatar(p,'lg')}</div>`;
+
+  document.getElementById('dName').textContent = `${p.pre} ${p.nom}`;
+  document.getElementById('dDates').textContent = fmtYears(p);
+
+  const branches = getBranches(p);
+  document.getElementById('dBadges').innerHTML = branchTagsHtml(branches);
+
+  let info = '';
+  if (p.lieuN) info += `<div class="ii"><div class="il">📍 Lieu de naissance</div><div class="iv"><a class="map-link" href="https://www.google.com/maps/search/${encodeURIComponent(p.lieuN)}" target="_blank">${p.lieuN} 🗺️</a></div></div>`;
+  if (p.lieuD) info += `<div class="ii"><div class="il">📍 Lieu de décès</div><div class="iv"><a class="map-link" href="https://www.google.com/maps/search/${encodeURIComponent(p.lieuD)}" target="_blank">${p.lieuD} 🗺️</a></div></div>`;
+  document.getElementById('dInfo').innerHTML = info;
+
+  // Documents
+  let docsHtml = '';
+  if (p.docs && p.docs.length) {
+    docsHtml = `<div class="sec"><div class="sec-title">📄 Documents (${p.docs.length})</div>`;
+    p.docs.forEach((doc,i) => {
+      const icon = doc.type.includes('pdf') ? '📕' : '🖼️';
+      docsHtml += `<div class="doc-item">
+        <div class="doc-icon">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="doc-name">${doc.name}</div>
+          <div class="doc-size">${doc.size}</div>
+        </div>
+        <button class="doc-btn" onclick="viewDoc(${i},'${p.id}')" title="Ouvrir">👁️</button>
+      </div>`;
+    });
+    docsHtml += '</div>';
+  }
+  document.getElementById('dDocs').innerHTML = docsHtml;
+
+  let bio = '';
+  if (p.bio) bio += `<div class="sec"><div class="sec-title">📖 Biographie</div><div class="bio">${p.bio}</div></div>`;
+  if (p.ane) bio += `<div class="sec"><div class="sec-title">✨ Anecdotes</div><div class="bio">${p.ane}</div></div>`;
+  document.getElementById('dBio').innerHTML = bio;
+
+  // Parents
+  const pere = p.pereId ? persons.find(x=>x.id===p.pereId) : null;
+  const mere = p.mereId ? persons.find(x=>x.id===p.mereId) : null;
+  let parHtml = '';
+  if (pere||mere) {
+    parHtml = `<div class="sec"><div class="sec-title">👨👩 Parents</div>`;
+    if (pere) parHtml += plink(pere, '👨 Père');
+    if (mere) parHtml += plink(mere, '👩 Mère');
+    parHtml += `</div>`;
+  }
+  document.getElementById('dParents').innerHTML = parHtml;
+
+  // Children
+  const children = persons.filter(x => x.pereId===p.id || x.mereId===p.id)
+    .sort((a,b)=>(birthYear(a)||9999)-(birthYear(b)||9999));
+  document.getElementById('dChildren').innerHTML = children.length
+    ? `<div class="sec"><div class="sec-title">👶 Enfants (${children.length})</div>${children.map(c=>plink(c,fmtYears(c))).join('')}</div>`
+    : '';
+
+  // Siblings
+  const sibs = persons.filter(x => x.id!==p.id && ((p.pereId&&x.pereId===p.pereId)||(p.mereId&&x.mereId===p.mereId)))
+    .sort((a,b)=>(birthYear(a)||9999)-(birthYear(b)||9999));
+  document.getElementById('dSiblings').innerHTML = sibs.length
+    ? `<div class="sec"><div class="sec-title">👫 Frères & Sœurs (${sibs.length})</div>${sibs.map(s=>plink(s,fmtYears(s))).join('')}</div>`
+    : '';
+
+  // Use strict partner detection
+  const partnerSet = getStrictPartners(p);
+  let partHtml = '';
+  if (partnerSet.size) {
+    partHtml = `<div class="sec"><div class="sec-title">💑 Partenaire(s)</div>`;
+    partnerSet.forEach(pid => { const pp=persons.find(x=>x.id===pid); if(pp) partHtml+=plink(pp,fmtYears(pp)); });
+    partHtml += `</div>`;
+  }
+  document.getElementById('dPartners').innerHTML = partHtml;
+
+  document.getElementById('btnEdit').onclick = () => { closeOv('detailOv'); setTimeout(()=>openForm(p.id),200); };
+  document.getElementById('btnDel').onclick = () => doDelete(p.id, `${p.pre} ${p.nom}`);
+  openOv('detailOv');
+}
+
+function plink(p, sub) {
+  return `<div class="plink" onclick="switchDetail('${p.id}')">
+    <div class="pl-av">${personImgHtml(p,'sm')}</div>
+    <div><div class="pl-name">${p.pre} ${p.nom}</div><div class="pl-sub">${sub}</div></div>
+    <div class="pl-arr">›</div>
+  </div>`;
+}
+
+function switchDetail(id) { closeOv('detailOv'); setTimeout(()=>openDetail(id),280); }
+
+// ============================================================
+// FORM
+// ============================================================
+function openForm(id) {
+  if (!isUnlocked) { showToast('🔒 PIN erforderlich – bitte einloggen'); return; }
+  editingId = id; photoData = null; formPereId = null; formMereId = null; formDocs = []; formGenOffset = null;
+  formAv = {skin:'#FDBCB4', hair:'#4a2c11', style:'court'};
+
+  if (id) {
+    const p = persons.find(x=>x.id===id);
+    document.getElementById('formTitle').textContent = 'Modifier';
+    document.getElementById('fPre').value  = p.pre||'';
+    document.getElementById('fNom').value  = p.nom||'';
+    document.getElementById('fNais').value = p.nais||'';
+    document.getElementById('fDec').value  = p.dec||'';
+    document.getElementById('fLN').value   = p.lieuN||'';
+    document.getElementById('fLD').value   = p.lieuD||'';
+    document.getElementById('fBio').value  = p.bio||'';
+    document.getElementById('fAne').value  = p.ane||'';
+    photoData = p.photo||null;
+    if (p.photo) { document.getElementById('phPrev').src=p.photo; document.getElementById('phPrev').style.display='block'; }
+    else document.getElementById('phPrev').style.display='none';
+    formPereId = p.pereId||null;
+    formMereId = p.mereId||null;
+    formPartnerIds = p.partnerIds ? [...p.partnerIds] : [];
+    formDocs = p.docs ? [...p.docs] : [];
+    formGenOffset = p.genOffset !== undefined ? p.genOffset : null;
+    formAv = p.av ? {...p.av} : {skin:'#FDBCB4',hair:'#4a2c11',style:'court'};
+    // Set branches
+    const branches = getBranches(p);
+    document.querySelectorAll('.bpill').forEach(el => {
+      const b = el.dataset.b;
+      el.className = 'bpill' + (branches.includes(b) ? ' active-'+b.split(' ')[0] : '');
+    });
+  } else {
+    document.getElementById('formTitle').textContent = 'Ajouter une personne';
+    ['fPre','fNom','fNais','fDec','fLN','fLD','fBio','fAne'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('phPrev').style.display='none';
+    document.querySelectorAll('.bpill').forEach(el => el.className='bpill');
+    formPartnerIds = [];
+    formDocs = [];
+    formGenOffset = null;
+  }
+  updateParentBtns();
+  updatePartnerList();
+  renderDocList();
+  updateGenOffsetDisplay();
+  initAvForm();
+  openOv('formOv');
+}
+
+
+function setUnknown(fieldId) {
+  const el = document.getElementById(fieldId);
+  el.value = el.value === '?' ? '' : '?';
+}
+
+
+let formGenOffset = null;
+
+function changeGenOffset(delta) {
+  if (formGenOffset === null) {
+    // Start from auto value
+    const p = editingId ? persons.find(x=>x.id===editingId) : null;
+    if (!_genCache) buildGenCache();
+    const autoGen = p ? ((_genCache&&_genCache[p.id]!==undefined) ? _genCache[p.id] : 0) : 0;
+    formGenOffset = delta; // offset from auto
+  } else {
+    formGenOffset += delta;
+  }
+  updateGenOffsetDisplay();
+}
+
+function resetGenOffset() {
+  formGenOffset = null;
+  updateGenOffsetDisplay();
+}
+
+function updateGenOffsetDisplay() {
+  const el = document.getElementById('genOffsetDisplay');
+  if (!el) return;
+  if (formGenOffset === null || formGenOffset === 0) {
+    el.textContent = 'Automatique';
+    el.style.color = 'var(--muted)';
+    formGenOffset = null;
+  } else {
+    const sign = formGenOffset > 0 ? '+' : '';
+    el.textContent = `${sign}${formGenOffset} génération${Math.abs(formGenOffset)>1?'s':''}`;
+    el.style.color = 'var(--amber-dark)';
+    el.style.fontWeight = '600';
+  }
+}
+
+function handlePhoto(e) {
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const MAX=300;
+      let w=img.width, h=img.height;
+      if(w>h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
+      else { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      photoData=canvas.toDataURL('image/jpeg',0.7);
+      document.getElementById('phPrev').src=photoData;
+      document.getElementById('phPrev').style.display='block';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Branch pills in form
+function toggleBpill(el) {
+  const b = el.dataset.b;
+  const key = b.split(' ')[0];
+  const isActive = el.classList.contains('active-'+key);
+  el.className = isActive ? 'bpill' : 'bpill active-'+key;
+}
+
+function getFormBranches() {
+  return [...document.querySelectorAll('.bpill')].filter(el => {
+    const b = el.dataset.b; return el.classList.contains('active-'+b.split(' ')[0]);
+  }).map(el=>el.dataset.b);
+}
+
+// Avatar form
+function initAvForm() {
+  // skin
+  document.querySelectorAll('#skinOpts .copt').forEach(el => el.classList.toggle('active', el.dataset.val===formAv.skin));
+  // hair
+  document.querySelectorAll('#hairOpts .copt').forEach(el => el.classList.toggle('active', el.dataset.val===formAv.hair));
+  // style
+  document.querySelectorAll('#styleOpts .sopt').forEach(el => el.classList.toggle('active', el.dataset.val===formAv.style));
+  updateAvPreview();
+}
+
+function setAv(el) {
+  formAv[el.dataset.type] = el.dataset.val;
+  if (el.dataset.type==='skin') document.querySelectorAll('#skinOpts .copt').forEach(e=>e.classList.toggle('active',e.dataset.val===formAv.skin));
+  else document.querySelectorAll('#hairOpts .copt').forEach(e=>e.classList.toggle('active',e.dataset.val===formAv.hair));
+  updateAvPreview();
+}
+
+function setAvStyle(el) {
+  formAv.style = el.dataset.val;
+  document.querySelectorAll('#styleOpts .sopt').forEach(e=>e.classList.toggle('active',e.dataset.val===formAv.style));
+  updateAvPreview();
+}
+
+function updateAvPreview() {
+  const pv = document.getElementById('avPreview');
+  if (pv) pv.innerHTML = avatar({av:formAv}, 'md');
+}
+
+// Parents
+function openPicker(target) {
+  pickerTarget = target;
+  document.getElementById('pickerTitle').textContent = target==='pere' ? 'Choisir le père' : 'Choisir la mère';
+  document.getElementById('pickerQ').value = '';
+  renderPicker();
+  openOv('pickerOv');
+}
+
+function renderPicker() {
+  const q = (document.getElementById('pickerQ').value||'').toLowerCase();
+  const list = persons.filter(p => p.id!==editingId && (!q||(p.pre+' '+p.nom).toLowerCase().includes(q)))
+    .sort((a,b)=>a.pre.localeCompare(b.pre,'fr'));
+  document.getElementById('pickerList').innerHTML = list.map(p=>`
+    <div class="picker-item" onclick="selectParent('${p.id}')">
+      <div class="picker-av">${personImgHtml(p,'sm')}</div>
+      <div><div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:600">${p.pre} ${p.nom}</div>
+      <div style="font-size:11px;color:var(--muted)">${fmtYears(p)}</div></div>
+    </div>`).join('') || '<div style="padding:20px;color:var(--muted);text-align:center">Aucun résultat</div>';
+}
+
+function selectParent(id) {
+  if (pickerTarget==='partner') {
+    if (!formPartnerIds.includes(id)) formPartnerIds.push(id);
+    closeOv('pickerOv'); updatePartnerList(); return;
+  }
+  if (pickerTarget==='pere') formPereId=id; else formMereId=id;
+  closeOv('pickerOv'); updateParentBtns();
+}
+
+function updatePartnerList() {
+  const el = document.getElementById('partnerList');
+  if (!el) return;
+  el.innerHTML = formPartnerIds.map(pid => {
+    const p = persons.find(x=>x.id===pid);
+    if (!p) return '';
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:2px solid var(--amber-light);border-radius:12px;padding:8px 12px">
+      <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--parchment);display:flex;align-items:center;justify-content:center;flex-shrink:0">${personImgHtml(p,'sm')}</div>
+      <div style="flex:1;font-family:'Playfair Display',serif;font-size:14px">💑 ${p.pre} ${p.nom}</div>
+      <button type="button" onclick="removePartner('${pid}')" style="background:none;border:none;color:#c0392b;font-size:18px;cursor:pointer">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removePartner(pid) {
+  formPartnerIds = formPartnerIds.filter(id=>id!==pid);
+  updatePartnerList();
+}
+
+function clearParent(which) {
+  if (which==='pere') formPereId=null; else formMereId=null;
+  updateParentBtns();
+}
+
+function updateParentBtns() {
+  const pe = formPereId ? persons.find(x=>x.id===formPereId) : null;
+  const me = formMereId ? persons.find(x=>x.id===formMereId) : null;
+  const bp = document.getElementById('btnPere'), cp = document.getElementById('clrPere');
+  const bm = document.getElementById('btnMere'), cm = document.getElementById('clrMere');
+  bp.textContent = pe ? `👨 ${pe.pre} ${pe.nom}` : '— Choisir le père —';
+  bp.className = 'btn-pick' + (pe?' chosen':'');
+  bm.textContent = me ? `👩 ${me.pre} ${me.nom}` : '— Choisir la mère —';
+  bm.className = 'btn-pick' + (me?' chosen':'');
+  cp.style.display = pe?'block':'none';
+  cm.style.display = me?'block':'none';
+}
+
+function savePerson() {
+  const pre = document.getElementById('fPre').value.trim();
+  if (!pre) { showToast('⚠️ Veuillez saisir le prénom'); return; }
+  const data = {
+    pre, nom: document.getElementById('fNom').value.trim(),
+    nais: document.getElementById('fNais').value.trim(),
+    dec:  document.getElementById('fDec').value.trim(),
+    lieuN: document.getElementById('fLN').value.trim(),
+    lieuD: document.getElementById('fLD').value.trim(),
+    bio:  document.getElementById('fBio').value.trim(),
+    ane:  document.getElementById('fAne').value.trim(),
+    photo: photoData||'',
+    branches: getFormBranches(),
+    av: {...formAv},
+    partnerIds: [...formPartnerIds],
+    docs: [...formDocs],
+    genOffset: formGenOffset,
+    pereId: formPereId,
+    mereId: formMereId,
+  };
+  if (editingId) {
+    const idx = persons.findIndex(p=>p.id===editingId);
+    persons[idx] = {...persons[idx], ...data};
+    showToast('✅ Enregistré !');
+  } else {
+    data.id = 'p'+Date.now();
+    persons.push(data);
+    showToast('🎉 Personne ajoutée !');
+  }
+  _genCache = null; saveData(); closeOv('formOv'); populateAncestorSelect(); render();
+}
+
+// ============================================================
+// BULK ASSIGN
+// ============================================================
+function openBulk() {
+  if (!isUnlocked) { showToast('🔒 PIN erforderlich – bitte einloggen'); return; }
+  bulkChanges = {};
+  bulkFilter = '';
+  document.getElementById('bulkQ').value = '';
+  // reset chips
+  const chips = document.querySelectorAll('#bulkOv .chip');
+  chips.forEach(c=>c.classList.remove('active'));
+  chips[0].classList.add('active');
+  renderBulk();
+  openOv('bulkOv');
+}
+
+function setBulkF(f, el) {
+  bulkFilter = f;
+  document.querySelectorAll('#bulkOv .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderBulk();
+}
+
+function renderBulk() {
+  const q = (document.getElementById('bulkQ').value||'').toLowerCase();
+  let list = [...persons];
+  if (q) list = list.filter(p=>(p.pre+' '+p.nom).toLowerCase().includes(q));
+
+  const getB = (p) => bulkChanges[p.id] !== undefined ? bulkChanges[p.id] : getBranches(p);
+
+  if (bulkFilter==='none') list = list.filter(p=>getB(p).length===0);
+  else if (bulkFilter) list = list.filter(p=>getB(p).includes(bulkFilter));
+
+  list.sort((a,b)=>a.pre.localeCompare(b.pre,'fr'));
+
+  const noB = persons.filter(p=>getBranches(p).length===0).length;
+  document.getElementById('bulkStats').textContent = `${persons.length} personnes · ${noB} sans branche`;
+
+  document.getElementById('bulkList').innerHTML = list.map(p => {
+    const curBranches = getB(p);
+    return `<div class="bulk-row">
+      <div class="bulk-av">${personImgHtml(p,'sm')}</div>
+      <div class="bulk-info">
+        <div class="bulk-name">${p.pre} ${p.nom}</div>
+        <div class="bulk-years">${fmtYears(p)}</div>
+      </div>
+      <div class="bulk-pills">
+        ${BRANCHES.map(b => {
+          const key = b.split(' ')[0];
+          const isActive = curBranches.includes(b);
+          const label = b==='Baranowski de Rawiez'?'Baran.':b;
+          return `<span class="bpill-sm ${isActive?'active-'+key:''}" onclick="toggleBulk('${p.id}','${b}',this)">${label}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--muted);font-style:italic">Aucune personne trouvée</div>';
+}
+
+function toggleBulk(pid, branch, el) {
+  const p = persons.find(x=>x.id===pid);
+  let cur = bulkChanges[pid] !== undefined ? [...bulkChanges[pid]] : [...getBranches(p)];
+  if (cur.includes(branch)) cur = cur.filter(b=>b!==branch);
+  else cur.push(branch);
+  bulkChanges[pid] = cur;
+  const key = branch.split(' ')[0];
+  el.className = 'bpill-sm' + (cur.includes(branch) ? ' active-'+key : '');
+}
+
+function saveBulk() {
+  const count = Object.keys(bulkChanges).length;
+  if (!count) { showToast('ℹ️ Aucune modification'); return; }
+  persons = persons.map(p => bulkChanges[p.id]!==undefined ? {...p, branches:bulkChanges[p.id]} : p);
+  _genCache=null; saveData(); render();
+  bulkChanges = {}; renderBulk();
+  showToast(`✅ ${count} personne${count>1?'s':''} mise${count>1?'s':''} à jour !`);
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function doDelete(id, name) {
+  if (!isUnlocked) { showToast('🔒 PIN erforderlich'); return; }
+  document.getElementById('confirmTxt').textContent = `"${name}" sera définitivement supprimé(e).`;
+  document.getElementById('btnYes').onclick = () => {
+    persons = persons.filter(p=>p.id!==id).map(p=>({...p, pereId:p.pereId===id?null:p.pereId, mereId:p.mereId===id?null:p.mereId}));
+    _genCache=null; saveData(); closeOv('confirmOv'); closeOv('detailOv'); render(); showToast('🗑️ Supprimé');
+  };
+  closeOv('detailOv'); setTimeout(()=>openOv('confirmOv'),200);
+}
+
+// ============================================================
+// PIN
+// ============================================================
+function pp(digit) {
+  if (pinInput.length>=4) return;
+  pinInput += digit;
+  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinInput.length);
+  if (pinInput.length===4) setTimeout(checkPin,200);
+}
+function pdel() {
+  pinInput = pinInput.slice(0,-1);
+  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinInput.length);
+  document.getElementById('pinErr').textContent='';
+}
+function checkPin() {
+  if (pinInput===PIN) {
+    isUnlocked=true;
+    document.getElementById('pinScreen').classList.add('hidden');
+    document.getElementById('lockBtn').style.display='block';
+    showToast('🔓 Mode édition activé');
+  } else {
+    document.getElementById('pinErr').textContent='❌ Code incorrect, réessayez';
+    pinInput='';
+    for(let i=0;i<4;i++) document.getElementById('d'+i).classList.remove('filled');
+  }
+}
+function pinSkip() {
+  isUnlocked=false;
+  document.getElementById('pinScreen').classList.add('hidden');
+}
+function doLock() {
+  isUnlocked=false; pinInput='';
+  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.remove('filled');
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinScreen').classList.remove('hidden');
+  document.getElementById('lockBtn').style.display='none';
+  closeOv('detailOv'); closeOv('formOv');
+}
+
+
+
+// ============================================================
+// GEDCOM IMPORT
+// ============================================================
+let gedAllPersons = [];
+let gedSelected = new Set();
+
+function openGedcom() {
+  if (!isUnlocked) { showToast('🔒 PIN erforderlich – bitte einloggen'); return; }
+  gedReset();
+  openOv('gedcomOv');
+}
+
+function gedReset() {
+  gedAllPersons = []; gedSelected = new Set();
+  document.getElementById('gedStep1').style.display = 'block';
+  document.getElementById('gedStep2').style.display = 'none';
+  document.getElementById('gedFile').value = '';
+}
+
+function parseGedcom(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      gedAllPersons = parseGedcomText(ev.target.result);
+      // Populate root select
+      const sel = document.getElementById('gedRootSelect');
+      sel.innerHTML = '<option value="">— Choisir une personne de référence —</option>';
+      [...gedAllPersons].sort((a,b)=>a.pre.localeCompare(b.pre,'fr')).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = `${p.pre} ${p.nom}${p.nais?' ('+p.nais+')':''}`;
+        sel.appendChild(opt);
+      });
+      document.getElementById('gedSummary').innerHTML = `
+        <div style="font-size:36px;margin-bottom:6px">🎉</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown)">${gedAllPersons.length} personnes trouvées dans le fichier</div>
+      `;
+      document.getElementById('gedStep1').style.display = 'none';
+      document.getElementById('gedStep2').style.display = 'block';
+      updateGedPreview();
+    } catch(err) { showToast('❌ Erreur: ' + err.message); }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function filterGedRoot() {
+  const q = document.getElementById('gedRootSearch').value.toLowerCase();
+  const sel = document.getElementById('gedRootSelect');
+  [...sel.options].forEach(opt => {
+    opt.style.display = (!q || opt.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+function getGedAncestors(id, result) {
+  if (!id || result.has(id)) return;
+  result.add(id);
+  const p = gedAllPersons.find(x=>x.id===id);
+  if (!p) return;
+  if (p.pereId) getGedAncestors(p.pereId, result);
+  if (p.mereId) getGedAncestors(p.mereId, result);
+  // Include partners of ancestors
+  (p.partnerIds||[]).forEach(pid => result.add(pid));
+}
+
+function getGedDescendants(id, result) {
+  if (!id || result.has(id)) return;
+  result.add(id);
+  const children = gedAllPersons.filter(x=>x.pereId===id||x.mereId===id);
+  children.forEach(c => getGedDescendants(c.id, result));
+  // Include partners
+  const p = gedAllPersons.find(x=>x.id===id);
+  if (p) (p.partnerIds||[]).forEach(pid => result.add(pid));
+}
+
+function updateGedPreview() {
+  const mode = document.querySelector('input[name="gedMode"]:checked').value;
+  const rootId = document.getElementById('gedRootSelect').value;
+  let filtered = new Set();
+
+  if (mode==='all') {
+    gedAllPersons.forEach(p=>filtered.add(p.id));
+  } else if (mode==='ancestors') {
+    if (rootId) { getGedAncestors(rootId,filtered); filtered.add(rootId); }
+  } else if (mode==='descendants') {
+    if (rootId) getGedDescendants(rootId,filtered);
+  } else if (mode==='both') {
+    if (rootId) { getGedAncestors(rootId,filtered); getGedDescendants(rootId,filtered); filtered.add(rootId); }
+  } else if (mode==='manual') {
+    filtered = new Set(gedSelected);
+  }
+
+  if (mode!=='manual') gedSelected = new Set(filtered);
+  document.getElementById('gedSelCount').textContent = gedSelected.size;
+  // Clear search
+  const sq = document.getElementById('gedPersonSearch'); if(sq) sq.value='';
+  renderGedList();
+}
+
+function toggleGedPerson(id, cb) {
+  if (cb.checked) gedSelected.add(id);
+  else gedSelected.delete(id);
+  document.getElementById('gedSelCount').textContent = gedSelected.size;
+  // Don't reset search - just update the list display
+  renderGedList();
+}
+
+function gedImport() {
+  const toImport = gedAllPersons.filter(p => gedSelected.has(p.id));
+  if (!toImport.length) { showToast('⚠️ Aucune personne sélectionnée'); return; }
+  let added = 0, skipped = 0;
+  toImport.forEach(np => {
+    const exists = persons.find(e => e.pre===np.pre && e.nom===np.nom && e.nais===np.nais);
+    if (!exists) { persons.push(np); added++; } else skipped++;
+  });
+  _genCache = null; saveData(); render();
+  closeOv('gedcomOv');
+  showToast(`🎉 ${added} importées !${skipped?' ('+skipped+' doublons ignorés)':''}`, 4000);
+}
+
+function parseGedcomText(text) {
+  const lines = text.split(/\r?\n/);
+  const indiMap = {}, famMap = {};
+  let cur = null, curType = null, curTag = null;
+  for (let line of lines) {
+    line = line.trim(); if (!line) continue;
+    const m = line.match(/^(\d+)\s+(\S+)(?:\s+(.*))?$/);
+    if (!m) continue;
+    const level = parseInt(m[1]), tagStr = m[2], valStr = m[3]||'';
+    if (level===0) {
+      curTag=null;
+      if (tagStr.startsWith('@')&&valStr==='INDI') { curType='INDI'; cur={id:tagStr.replace(/@/g,''),events:{}}; indiMap[cur.id]=cur; }
+      else if (tagStr.startsWith('@')&&valStr==='FAM') { curType='FAM'; cur={id:tagStr.replace(/@/g,''),children:[]}; famMap[cur.id]=cur; }
+      else { cur=null; curType=null; }
+      continue;
+    }
+    if (!cur) continue;
+    if (curType==='INDI') {
+      if (level===1&&tagStr==='NAME') {
+        const sn=valStr.match(/\/([^/]*)\//)
+        cur.nom=sn?sn[1].trim():valStr.split(' ').pop();
+        cur.pre=sn?valStr.replace(/\/[^/]*\//,'').replace(/\//g,'').trim():valStr.split(' ').slice(0,-1).join(' ');
+        if(!cur.pre)cur.pre=valStr.replace(/\//g,'').trim();
+      }
+      if (level===1&&tagStr==='SEX') cur.sex=valStr;
+      if (level===1&&(tagStr==='BIRT'||tagStr==='DEAT')) { curTag=tagStr; if(!cur.events[curTag])cur.events[curTag]={}; }
+      if (level===2&&curTag) { if(tagStr==='DATE')cur.events[curTag].date=valStr; if(tagStr==='PLAC')cur.events[curTag].plac=valStr; }
+      if (level===1&&tagStr!=='BIRT'&&tagStr!=='DEAT') curTag=null;
+      if (level===1&&tagStr==='FAMS') cur.fams=(cur.fams||[]).concat(valStr.replace(/@/g,''));
+      if (level===1&&tagStr==='FAMC') cur.famc=(cur.famc||[]).concat(valStr.replace(/@/g,''));
+    }
+    if (curType==='FAM') {
+      if (level===1&&tagStr==='HUSB') cur.husb=valStr.replace(/@/g,'');
+      if (level===1&&tagStr==='WIFE') cur.wife=valStr.replace(/@/g,'');
+      if (level===1&&tagStr==='CHIL') cur.children.push(valStr.replace(/@/g,''));
+    }
+  }
+  const idMap={};
+  const result=Object.values(indiMap).map(p=>{
+    const nid='ged_'+p.id.replace(/[^a-zA-Z0-9]/g,'_');
+    idMap[p.id]=nid;
+    const b=p.events['BIRT']||{}, d=p.events['DEAT']||{};
+    return {id:nid,pre:p.pre||'?',nom:p.nom||'',nais:fmtGedDate(b.date||''),dec:fmtGedDate(d.date||''),lieuN:b.plac||'',lieuD:d.plac||'',bio:'',ane:'',photo:'',branches:[],partnerIds:[],pereId:null,mereId:null,av:{skin:'#FDBCB4',hair:'#4a2c11',style:p.sex==='F'?'long':'court'},_ged:p.id,_fams:p.fams||[]};
+  });
+  Object.values(famMap).forEach(fam=>{
+    const hn=fam.husb?idMap[fam.husb]:null, wn=fam.wife?idMap[fam.wife]:null;
+    if(hn&&wn){const h=result.find(x=>x.id===hn),w=result.find(x=>x.id===wn);if(h&&!h.partnerIds.includes(wn))h.partnerIds.push(wn);if(w&&!w.partnerIds.includes(hn))w.partnerIds.push(hn);}
+    fam.children.forEach(cg=>{const cn=idMap[cg],c=result.find(x=>x.id===cn);if(c){if(hn&&!c.pereId)c.pereId=hn;if(wn&&!c.mereId)c.mereId=wn;}});
+  });
+  result.forEach(p=>{delete p._ged;delete p._fams;});
+  return result;
+}
+
+function fmtGedDate(d) {
+  if(!d)return'';
+  const mo={JAN:'01',FEB:'02',MAR:'03',APR:'04',MAY:'05',JUN:'06',JUL:'07',AUG:'08',SEP:'09',OCT:'10',NOV:'11',DEC:'12'};
+  const m=d.match(/(\d{1,2})\s+([A-Z]{3})\s+(\d{4})/);
+  if(m)return m[1].padStart(2,'0')+'.'+( mo[m[2]]||'??')+'.'+m[3];
+  const y=d.match(/(\d{4})/);return y?y[1]:d;
+}
+
+
+
+function deleteGedcomPersons() {
+  const gedCount = persons.filter(p=>p.id.startsWith('ged_')).length;
+  if (gedCount===0) { showToast('ℹ️ Aucune personne GEDCOM trouvée'); return; }
+  document.getElementById('confirmTxt').textContent = `${gedCount} personne(s) importée(s) via GEDCOM seront supprimées.`;
+  document.getElementById('btnYes').onclick = () => {
+    const gedIds = new Set(persons.filter(p=>p.id.startsWith('ged_')).map(p=>p.id));
+    persons = persons
+      .filter(p=>!gedIds.has(p.id))
+      .map(p=>({...p,
+        pereId: gedIds.has(p.pereId)?null:p.pereId,
+        mereId: gedIds.has(p.mereId)?null:p.mereId,
+        partnerIds: (p.partnerIds||[]).filter(id=>!gedIds.has(id))
+      }));
+    _genCache=null; saveData(); render();
+    closeOv('confirmOv'); closeOv('gedcomOv');
+    showToast(`🗑️ ${gedCount} personnes GEDCOM supprimées`);
+  };
+  closeOv('gedcomOv'); setTimeout(()=>openOv('confirmOv'),200);
+}
+
+function gedSelectAll(val) {
+  if (val) gedAllPersons.forEach(p=>gedSelected.add(p.id));
+  else gedSelected.clear();
+  document.getElementById('gedSelCount').textContent = gedSelected.size;
+  renderGedList();
+}
+
+function renderGedList() {
+  const q = (document.getElementById('gedPersonSearch')||{value:''}).value.toLowerCase();
+  const mode = document.querySelector('input[name="gedMode"]:checked').value;
+  const filtered = q ? gedAllPersons.filter(p=>(p.pre+' '+p.nom).toLowerCase().includes(q)) : gedAllPersons;
+  document.getElementById('gedPreview').innerHTML = filtered.map(p => {
+    const checked = gedSelected.has(p.id);
+    const isManual = mode==='manual';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--parchment);${checked?'':'opacity:.4'}">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleGedPerson('${p.id}',this)" style="width:20px;height:20px;accent-color:var(--amber);flex-shrink:0;${!isManual?'pointer-events:none':''}">
+      <div style="width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--parchment);display:flex;align-items:center;justify-content:center;flex-shrink:0">${avatar(p,'sm')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.pre} ${p.nom}</div>
+        <div style="font-size:12px;color:var(--muted)">${fmtYears(p)}${p.pereId||p.mereId?' · 🔗':''}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--muted)">Aucun résultat</div>';
+}
+
+
+
+// ============================================================
+// DRAG & DROP GENERATION CHANGE
+// ============================================================
+let _dragId = null;
+let _touchId = null;
+let _touchMoved = false;
+let _isDragging = false;
+
+function handleCardClick(event, id) {
+  if (_isDragging) { _isDragging = false; return; }
+  openDetail(id);
+}
+
+function moveGeneration(id, delta) {
+  const p = persons.find(x=>x.id===id); if(!p) return;
+  p.genOffset = (p.genOffset||0) + delta;
+  _genCache = null; saveData(); render();
+  showToast(delta<0 ? '⬆️ Génération plus haute' : '⬇️ Génération plus basse');
+}
+
+// DESKTOP DRAG
+function dragStart(event, id) {
+  _dragId = id; _isDragging = true;
+  event.dataTransfer.effectAllowed = 'move';
+  event.target.classList.add('dragging');
+  // Show all drop zones
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.add('active'));
+}
+
+function dragEnd(event) {
+  event.target.classList.remove('dragging');
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>{
+    z.classList.remove('active','over');
+  });
+  setTimeout(()=>{ _isDragging = false; }, 100);
+}
+
+function dropZoneOver(event, genTarget) {
+  event.preventDefault();
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.remove('over'));
+  event.currentTarget.classList.add('over');
+}
+
+function dropZoneLeave(event) {
+  event.currentTarget.classList.remove('over');
+}
+
+function dropOnZone(event, genTarget) {
+  event.preventDefault();
+  if (!_dragId) return;
+  setPersonGeneration(_dragId, genTarget);
+  _dragId = null;
+}
+
+// TOUCH DRAG
+let _touchTimer = null;
+let _touchCard = null;
+let _touchClone = null;
+
+function touchStart(event, id) {
+  _touchId = id; _touchMoved = false;
+  _touchCard = event.currentTarget;
+  _touchTimer = setTimeout(() => {
+    // Long press → start drag mode
+    _touchCard.classList.add('touch-show-arrows');
+    navigator.vibrate && navigator.vibrate(40);
+  }, 500);
+}
+
+function touchMove(event) {
+  _touchMoved = true;
+  clearTimeout(_touchTimer);
+  if (!_touchId) return;
+  event.preventDefault();
+  const touch = event.touches[0];
+  // Highlight drop zone under finger
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.add('active'));
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.remove('over'));
+  const zone = el ? el.closest('.gen-drop-zone') : null;
+  if (zone) zone.classList.add('over');
+}
+
+function touchEnd(event) {
+  clearTimeout(_touchTimer);
+  if (!_touchId || !_touchMoved) {
+    document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.remove('active','over'));
+    _touchId = null; return;
+  }
+  const touch = event.changedTouches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const zone = el ? el.closest('.gen-drop-zone') : null;
+  if (zone) {
+    const genTarget = parseInt(zone.dataset.gen);
+    setPersonGeneration(_touchId, genTarget);
+  }
+  document.querySelectorAll('.gen-drop-zone').forEach(z=>z.classList.remove('active','over'));
+  if (_touchCard) _touchCard.classList.remove('touch-show-arrows');
+  _touchId = null; _touchMoved = false;
+}
+
+function setPersonGeneration(id, targetGen) {
+  const p = persons.find(x=>x.id===id); if(!p) return;
+  // Calculate current auto gen
+  if (!_genCache) buildGenCache();
+  const autoGen = _genCache[id] ?? 0;
+  p.genOffset = targetGen - autoGen;
+  if (p.genOffset === 0) delete p.genOffset;
+  _genCache = null; saveData(); render();
+  showToast(`✅ Déplacé en Génération ${targetGen+1}`);
+}
+
+
+// ============================================================
+// ANCESTOR HIGHLIGHT
+// ============================================================
+function toggleAncestorBar() {
+  const bar = document.getElementById('ancestorBar');
+  const btn = document.getElementById('btnAnc');
+  const isVisible = bar.style.display === 'flex';
+  bar.style.display = isVisible ? 'none' : 'flex';
+  btn.style.background = isVisible ? 'rgba(255,255,255,.2)' : 'var(--amber-light)';
+  btn.style.color = isVisible ? 'var(--cream)' : 'var(--brown)';
+  if (!isVisible) populateAncestorSelect();
+  render();
+}
+
+function populateAncestorSelect() {
+  const sel = document.getElementById('ancestorRef');
+  const cur = sel.value;
+  const sorted = [...persons].sort((a,b)=>a.pre.localeCompare(b.pre,'fr'));
+  sel.innerHTML = '<option value="">— Désactiver —</option>' +
+    sorted.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.pre} ${p.nom}${p.nais?' ('+p.nais+')':''}</option>`).join('');
+
+  // Auto-select Alexandrine Bareau on first load
+  if (!cur) {
+    const alex = persons.find(p =>
+      p.pre.toLowerCase().includes('alexandrine') &&
+      p.nom.toLowerCase().includes('bareau')
+    );
+    if (alex) {
+      sel.value = alex.id;
+      const bar = document.getElementById('ancestorBar');
+      const btn = document.getElementById('btnAnc');
+      if (bar) bar.style.display = 'flex';
+      if (btn) { btn.style.background = 'var(--amber-light)'; btn.style.color = 'var(--brown)'; }
+    }
+  }
+}
+
+function getAncestorIds(id, result) {
+  if (!id || result.has(id)) return;
+  result.add(id);
+  const p = persons.find(x=>x.id===id);
+  if (!p) return;
+  if (p.pereId) getAncestorIds(p.pereId, result);
+  if (p.mereId) getAncestorIds(p.mereId, result);
+}
+
+
+// ============================================================
+// DOCUMENTS
+// ============================================================
+let formDocs = []; // [{name, type, size, data}]
+
+function handleDoc(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const maxMB = 2;
+  if (file.size > maxMB*1024*1024) {
+    showToast(`⚠️ Fichier trop grand (max ${maxMB}MB)`); return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const doc = {
+      name: file.name,
+      type: file.type,
+      size: formatDocSize(file.size),
+      data: ev.target.result
+    };
+    formDocs.push(doc);
+    renderDocList();
+    document.getElementById('docIn').value = '';
+    showToast('📎 Document ajouté !');
+  };
+  reader.readAsDataURL(file);
+}
+
+function formatDocSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function renderDocList() {
+  const el = document.getElementById('docList'); if (!el) return;
+  el.innerHTML = formDocs.map((doc,i) => {
+    const icon = doc.type.includes('pdf') ? '📕' : '🖼️';
+    return `<div class="doc-item">
+      <div class="doc-icon">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="doc-name">${doc.name}</div>
+        <div class="doc-size">${doc.size}</div>
+      </div>
+      <button class="doc-btn" onclick="removeDoc(${i})" title="Supprimer">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function removeDoc(i) {
+  formDocs.splice(i,1); renderDocList();
+}
+
+function viewDoc(i, pid) {
+  const p = persons.find(x=>x.id===pid); if(!p||!p.docs) return;
+  const doc = p.docs[i]; if(!doc) return;
+  const win = window.open();
+  if (doc.type.includes('pdf')) {
+    win.document.write(`<iframe src="${doc.data}" style="width:100%;height:100%;border:none"></iframe>`);
+  } else {
+    win.document.write(`<img src="${doc.data}" style="max-width:100%;display:block;margin:auto">`);
+  }
+}
+
+// ============================================================
+// OVERLAY UTILS
+// ============================================================
+function openOv(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow='hidden'; }
+function closeOv(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+function showToast(msg, dur) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur||2500);
+}
+
+loadData();
+</script>
+</body>
+</html>
